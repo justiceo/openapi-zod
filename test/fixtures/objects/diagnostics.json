@@ -1,0 +1,14 @@
+[
+  {
+    "level": "warning",
+    "code": "empty.paths",
+    "message": "No paths were found.",
+    "path": "#/paths"
+  },
+  {
+    "level": "warning",
+    "code": "ambiguous.type",
+    "message": "Schema has properties but no explicit type; treating it as an object.",
+    "path": "#/components/schemas/Profile"
+  }
+]

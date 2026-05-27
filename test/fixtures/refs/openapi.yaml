@@ -1,0 +1,31 @@
+openapi: 3.0.3
+info:
+  title: Refs
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Node:
+      type: object
+      required: [value]
+      properties:
+        child:
+          $ref: "#/components/schemas/Node"
+        value:
+          type: string
+    Pet:
+      type: object
+      required: [owner]
+      properties:
+        owner:
+          $ref: "#/components/schemas/User"
+        invalid:
+          $ref: "#/components/schemas/Missing"
+        external:
+          $ref: "./common.yaml#/User"
+    User:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string

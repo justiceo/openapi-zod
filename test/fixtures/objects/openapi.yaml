@@ -1,0 +1,30 @@
+openapi: 3.1.0
+info:
+  title: Objects
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Pet:
+      type: object
+      required: [id, name]
+      properties:
+        name:
+          type: string
+        id:
+          type: string
+          format: uuid
+        tag:
+          type: ["string", "null"]
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+    Profile:
+      properties:
+        age:
+          type: integer
+        display-name:
+          type: string
+      required:
+        - display-name

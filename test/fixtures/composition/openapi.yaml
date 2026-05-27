@@ -1,0 +1,40 @@
+openapi: 3.1.0
+info:
+  title: Composition
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Color:
+      enum: [red, green, blue]
+    IdOrName:
+      oneOf:
+        - type: string
+        - type: integer
+    Mixed:
+      enum: [1, "two", true]
+    Role:
+      enum: [admin]
+    Tags:
+      type: array
+      items:
+        type: string
+      minItems: 1
+      uniqueItems: true
+    Dictionary:
+      type: object
+      additionalProperties:
+        type: integer
+    Timestamped:
+      allOf:
+        - type: object
+          required: [createdAt]
+          properties:
+            createdAt:
+              type: string
+              format: date-time
+        - type: object
+          properties:
+            updatedAt:
+              type: string
+              format: date-time

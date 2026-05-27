@@ -1,0 +1,20 @@
+[
+  {
+    "level": "warning",
+    "code": "empty.paths",
+    "message": "No paths were found.",
+    "path": "#/paths"
+  },
+  {
+    "level": "warning",
+    "code": "unsupported.externalRef",
+    "message": "External references are not supported.",
+    "path": "#/components/schemas/Pet/properties/external/$ref"
+  },
+  {
+    "level": "error",
+    "code": "invalid.ref",
+    "path": "#/components/schemas/Pet/properties/invalid/$ref",
+    "message": "Reference target \"Missing\" was not found in components.schemas."
+  }
+]

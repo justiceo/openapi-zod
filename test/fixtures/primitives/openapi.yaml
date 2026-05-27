@@ -1,0 +1,30 @@
+openapi: 3.0.3
+info:
+  title: Primitives
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Active:
+      type: boolean
+    Age:
+      type: integer
+      minimum: 0
+    Anything:
+      type: "null"
+    Email:
+      type: string
+      format: email
+      maxLength: 255
+    Rating:
+      type: number
+      exclusiveMinimum: true
+      minimum: 0
+      maximum: 5
+    Slug:
+      type: string
+      minLength: 3
+      pattern: "^[a-z0-9-]+$"
+    UnknownFormat:
+      type: string
+      format: hostname

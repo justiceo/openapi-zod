@@ -1,0 +1,14 @@
+[
+  {
+    "level": "warning",
+    "code": "empty.paths",
+    "message": "No paths were found.",
+    "path": "#/paths"
+  },
+  {
+    "level": "warning",
+    "code": "unsupported.format",
+    "message": "Unsupported string format \"hostname\".",
+    "path": "#/components/schemas/UnknownFormat/format"
+  }
+]
