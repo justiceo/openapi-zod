@@ -1,0 +1,20 @@
+[
+  {
+    "level": "warning",
+    "code": "empty.paths",
+    "message": "No paths were found.",
+    "path": "#/paths"
+  },
+  {
+    "level": "warning",
+    "code": "unsafe.default",
+    "message": "Default value is not compatible with the schema.",
+    "path": "#/components/schemas/EnumBadDefault/default"
+  },
+  {
+    "level": "warning",
+    "code": "unsafe.default",
+    "message": "Default value is not compatible with the schema.",
+    "path": "#/components/schemas/IntegerBadDefault/default"
+  }
+]

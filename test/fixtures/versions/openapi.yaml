@@ -1,0 +1,21 @@
+openapi: 3.0.3
+info:
+  title: Versions
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    LegacyNullable:
+      type: string
+      nullable: true
+    LegacyExclusive:
+      type: integer
+      minimum: 1
+      exclusiveMinimum: true
+      maximum: 10
+      exclusiveMaximum: true
+    IncompatibleTypeArray:
+      type: [string, "null"]
+    BadExclusive:
+      type: number
+      exclusiveMinimum: 1

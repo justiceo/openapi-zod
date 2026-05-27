@@ -1,0 +1,81 @@
+openapi: 3.1.0
+info:
+  title: Reusable
+  version: 1.0.0
+security:
+  - ApiKeyAuth: []
+paths:
+  /items/{itemId}:
+    get:
+      operationId: readItem
+      parameters:
+        - $ref: "#/components/parameters/ItemId"
+        - $ref: "#/components/parameters/TraceId"
+      responses:
+        "200":
+          $ref: "#/components/responses/ItemResponse"
+  /items:
+    post:
+      operationId: createItem
+      security:
+        - OAuthAuth: [items:write]
+      requestBody:
+        $ref: "#/components/requestBodies/ItemBody"
+      responses:
+        "201":
+          $ref: "#/components/responses/ItemResponse"
+components:
+  schemas:
+    Item:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+  parameters:
+    ItemId:
+      name: itemId
+      in: path
+      required: true
+      schema:
+        type: string
+    TraceId:
+      name: X-Trace-Id
+      in: header
+      schema:
+        type: string
+  requestBodies:
+    ItemBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Item"
+  responses:
+    ItemResponse:
+      description: Item response
+      headers:
+        X-Trace-Id:
+          $ref: "#/components/headers/TraceHeader"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Item"
+  headers:
+    TraceHeader:
+      schema:
+        type: string
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    OAuthAuth:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.example.test/token
+          scopes:
+            items:write: Write items

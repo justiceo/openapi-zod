@@ -1,0 +1,29 @@
+openapi: 3.1.0
+info:
+  title: Defaults
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    StringWithDefault:
+      type: string
+      default: active
+    IntegerBadDefault:
+      type: integer
+      default: "1"
+    EnumDefault:
+      type: string
+      enum: [small, medium, large]
+      default: medium
+    EnumBadDefault:
+      type: string
+      enum: [small, medium, large]
+      default: extra-large
+    NullableDefault:
+      type: [string, "null"]
+      default: null
+    ConstValue:
+      const: ready
+    ObjectLiteralEnum:
+      enum:
+        - kind: fixed

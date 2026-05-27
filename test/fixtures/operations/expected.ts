@@ -62,7 +62,7 @@ export const getUserOperation = {
         etag: z.string().optional(),
       }),
       content: {
-        "application/json": z.lazy(() => UserSchema),
+        "application/json": UserSchema,
       },
     },
     "default": {
@@ -91,7 +91,7 @@ export const updateUserOperation = {
     query: z.object({}),
     headers: z.object({}),
     cookies: z.object({}),
-    body: z.lazy(() => UserSchema),
+    body: UserSchema,
   },
   responses: {
     "204": {

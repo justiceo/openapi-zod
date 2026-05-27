@@ -1,0 +1,41 @@
+openapi: 3.1.0
+info:
+  title: Metadata Advanced
+  version: 1.0.0
+  summary: Metadata fixture
+  description: Exercises richer metadata
+servers:
+  - url: https://{env}.example.test
+    description: Main server
+    variables:
+      env:
+        default: api
+        enum: [api, staging]
+tags:
+  - name: Meta
+    description: Metadata tag
+    externalDocs:
+      url: https://example.test/tags/meta
+externalDocs:
+  url: https://example.test/docs
+paths:
+  /meta:
+    get:
+      operationId: getMeta
+      summary: Get metadata
+      description: Returns metadata
+      tags: [Meta]
+      externalDocs:
+        url: https://example.test/operations/get-meta
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+components:
+  schemas: {}

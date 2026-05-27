@@ -1,0 +1,90 @@
+openapi: 3.1.0
+info:
+  title: Advanced
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    ContactChoice:
+      oneOf:
+        - type: object
+          required: [email]
+          properties:
+            email:
+              type: string
+              format: email
+        - type: object
+          required: [phone]
+          properties:
+            phone:
+              type: string
+    ContainsNumber:
+      type: array
+      items:
+        type: number
+      contains:
+        type: integer
+      minContains: 2
+      maxContains: 3
+    ConditionalValue:
+      type: object
+      properties:
+        mode:
+          type: string
+      if:
+        type: object
+        required: [mode]
+        properties:
+          mode:
+            const: strict
+      then:
+        type: object
+        required: [strictValue]
+        properties:
+          strictValue:
+            type: string
+      else:
+        type: object
+        required: [relaxedValue]
+        properties:
+          relaxedValue:
+            type: string
+    DependentSchema:
+      type: object
+      properties:
+        kind:
+          type: string
+      dependentSchemas:
+        kind:
+          type: object
+          required: [value]
+          properties:
+            value:
+              type: string
+    FlexibleTuple:
+      type: array
+      prefixItems:
+        - type: string
+        - type: integer
+      items:
+        type: boolean
+    PatternedMap:
+      type: object
+      minProperties: 1
+      maxProperties: 3
+      propertyNames:
+        type: string
+        pattern: "^[a-z-]+$"
+      patternProperties:
+        "^x-":
+          type: integer
+      dependentRequired:
+        credit-card: [billing-address]
+    UniqueDeep:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: string
+      uniqueItems: true

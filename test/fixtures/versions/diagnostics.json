@@ -1,0 +1,20 @@
+[
+  {
+    "level": "warning",
+    "code": "empty.paths",
+    "message": "No paths were found.",
+    "path": "#/paths"
+  },
+  {
+    "level": "error",
+    "code": "invalid.numericConstraint",
+    "message": "OpenAPI 3.0 exclusiveMinimum must be boolean.",
+    "path": "#/components/schemas/BadExclusive/exclusiveMinimum"
+  },
+  {
+    "level": "error",
+    "code": "invalid.schema",
+    "message": "OpenAPI 3.0 schemas cannot use type arrays.",
+    "path": "#/components/schemas/IncompatibleTypeArray/type"
+  }
+]

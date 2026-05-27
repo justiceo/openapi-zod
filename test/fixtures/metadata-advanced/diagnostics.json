@@ -1,0 +1,8 @@
+[
+  {
+    "level": "warning",
+    "code": "empty.componentsSchemas",
+    "message": "No component schemas were found.",
+    "path": "#/components/schemas"
+  }
+]

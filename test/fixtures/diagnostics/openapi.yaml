@@ -1,0 +1,66 @@
+openapi: 3.1.0
+info:
+  title: Diagnostics
+  version: 1.0.0
+paths:
+  users/{userId}:
+    get:
+      operationId: invalidPath
+      responses:
+        "200":
+          description: ok
+  /missing/{userId}:
+    get:
+      operationId: missingPathParam
+      parameters:
+        - name: unused
+          in: path
+          required: false
+          style: label
+          schema:
+            type: string
+      responses:
+        "20A":
+          description: bad
+        "200":
+          description: linked
+          links:
+            next:
+              operationId: next
+          content:
+            text/plain:
+              schema:
+                type: string
+  /upload:
+    post:
+      operationId: upload
+      security:
+        - MissingAuth: []
+        - OAuthAuth: [unknown]
+      parameters:
+        - name: filter
+          in: query
+          style: deepObject
+          schema:
+            type: string
+      requestBody:
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses: {}
+  /no-responses:
+    get:
+      operationId: noResponses
+components:
+  schemas:
+    EmptyObject:
+      type: object
+  securitySchemes:
+    OAuthAuth:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.example.test/token
+          scopes:
+            known: Known scope

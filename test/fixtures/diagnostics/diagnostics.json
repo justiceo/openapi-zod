@@ -1,0 +1,86 @@
+[
+  {
+    "level": "warning",
+    "code": "ambiguous.recordValue",
+    "message": "Object has no properties or additionalProperties schema; using unknown record values.",
+    "path": "#/components/schemas/EmptyObject"
+  },
+  {
+    "level": "warning",
+    "code": "unsupported.parameterSerialization",
+    "message": "Parameter serialization is not supported.",
+    "path": "#/paths/~1missing~1{userId}/get/parameters/0"
+  },
+  {
+    "level": "error",
+    "code": "invalid.pathParameter",
+    "message": "Path parameters must be required.",
+    "path": "#/paths/~1missing~1{userId}/get/parameters/0/required"
+  },
+  {
+    "level": "error",
+    "code": "invalid.pathParameter",
+    "message": "Missing path parameter \"userId\".",
+    "path": "#/paths/~1missing~1{userId}/get"
+  },
+  {
+    "level": "error",
+    "code": "invalid.pathParameter",
+    "message": "Path parameter \"unused\" is not used in the path template.",
+    "path": "#/paths/~1missing~1{userId}/get"
+  },
+  {
+    "level": "warning",
+    "code": "unsupported.mediaType",
+    "message": "No configured media types were found.",
+    "path": "#/paths/~1missing~1{userId}/get/responses/200/content"
+  },
+  {
+    "level": "warning",
+    "code": "unsupported.links",
+    "message": "Response links are not supported.",
+    "path": "#/paths/~1missing~1{userId}/get/responses/200/links"
+  },
+  {
+    "level": "error",
+    "code": "invalid.responseStatus",
+    "message": "Invalid response status \"20A\".",
+    "path": "#/paths/~1missing~1{userId}/get/responses/20A"
+  },
+  {
+    "level": "error",
+    "code": "invalid.responses",
+    "message": "Operation responses must be an object.",
+    "path": "#/paths/~1no-responses/get/responses"
+  },
+  {
+    "level": "warning",
+    "code": "unsupported.parameterSerialization",
+    "message": "Parameter serialization is not supported.",
+    "path": "#/paths/~1upload/post/parameters/0"
+  },
+  {
+    "level": "warning",
+    "code": "unsupported.mediaType",
+    "message": "No configured media types were found.",
+    "path": "#/paths/~1upload/post/requestBody/content"
+  },
+  {
+    "level": "error",
+    "code": "invalid.securityScheme",
+    "message": "Security scheme \"MissingAuth\" was not found.",
+    "path": "#/paths/~1upload/post/security/0/MissingAuth"
+  },
+  {
+    "level": "error",
+    "code": "invalid.securityScope",
+    "message": "Security scope \"unknown\" was not declared.",
+    "path": "#/paths/~1upload/post/security/1/OAuthAuth/0"
+  },
+  {
+    "level": "error",
+    "code": "invalid.path",
+    "message": "Path keys must start with /.",
+    "path": "#/paths/users~1{userId}"
+  }
+]

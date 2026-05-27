@@ -4,11 +4,5 @@
     "code": "empty.paths",
     "message": "No paths were found.",
     "path": "#/paths"
-  },
-  {
-    "level": "warning",
-    "code": "unsupported.uniqueItems",
-    "message": "uniqueItems is not supported.",
-    "path": "#/components/schemas/Tags/uniqueItems"
   }
 ]
