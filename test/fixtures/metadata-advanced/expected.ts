@@ -39,19 +39,10 @@ export const getMetaOperation = {
   method: "get",
   path: "/meta",
   tags: ["Meta"],
-  deprecated: false,
-  security: [],
-  request: {
-    params: z.object({}),
-    query: z.object({}),
-    headers: z.object({}),
-    cookies: z.object({}),
-    body: undefined,
-  },
+  request: {},
   responses: {
     "200": {
       description: "ok",
-      headers: z.object({}),
       content: {
         "application/json": z.object({
           ok: z.boolean().optional(),

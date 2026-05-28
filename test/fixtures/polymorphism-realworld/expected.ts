@@ -46,21 +46,12 @@ export const ingestEventOperation = {
   operationId: "ingestEvent",
   method: "post",
   path: "/events",
-  tags: [],
-  deprecated: false,
-  security: [],
   request: {
-    params: z.object({}),
-    query: z.object({}),
-    headers: z.object({}),
-    cookies: z.object({}),
     body: EventSchema.optional(),
   },
   responses: {
     "202": {
       description: "Accepted",
-      headers: z.object({}),
-      content: {},
     },
   },
 } as const;

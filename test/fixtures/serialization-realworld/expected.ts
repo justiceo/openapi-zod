@@ -17,9 +17,6 @@ export const searchOperation = {
   operationId: "search",
   method: "get",
   path: "/search/{ids}",
-  tags: [],
-  deprecated: false,
-  security: [],
   request: {
     params: z.object({
       ids: z.array(z.string()),
@@ -32,8 +29,6 @@ export const searchOperation = {
     headers: z.object({
       "x-trace": z.string().optional(),
     }),
-    cookies: z.object({}),
-    body: undefined,
     serialization: [
       {
         allowEmptyValue: true,
@@ -57,7 +52,6 @@ export const searchOperation = {
   responses: {
     "200": {
       description: "Results",
-      headers: z.object({}),
       content: {
         "application/json": z.object({
           total: z.int().optional(),

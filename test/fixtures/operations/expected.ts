@@ -36,7 +36,6 @@ export const getUserOperation = {
   method: "get",
   path: "/users/{userId}",
   tags: ["Users"],
-  deprecated: false,
   security: [
     {
       BearerAuth: [],
@@ -52,8 +51,6 @@ export const getUserOperation = {
     headers: z.object({
       "x-request-id": z.string().optional(),
     }),
-    cookies: z.object({}),
-    body: undefined,
   },
   responses: {
     "200": {
@@ -67,7 +64,6 @@ export const getUserOperation = {
     },
     "default": {
       description: "Error response",
-      headers: z.object({}),
       content: {
         "application/json": ErrorSchema,
       },
@@ -82,22 +78,15 @@ export const updateUserOperation = {
   method: "post",
   path: "/users/{userId}",
   tags: ["Users"],
-  deprecated: false,
-  security: [],
   request: {
     params: z.object({
       userId: z.uuid(),
     }),
-    query: z.object({}),
-    headers: z.object({}),
-    cookies: z.object({}),
     body: UserSchema,
   },
   responses: {
     "204": {
       description: "Updated",
-      headers: z.object({}),
-      content: {},
     },
   },
 } as const;

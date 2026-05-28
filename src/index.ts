@@ -17,6 +17,7 @@ export type ConvertOpenApiToZodOptions = {
   strictObjects?: boolean;
   mediaTypes?: string[];
   includeDeprecated?: boolean;
+  includeDefaultValues?: boolean;
   onUnsupported?: "warn" | "error";
 };
 
@@ -242,6 +243,7 @@ function resolveOptions(options: ConvertOpenApiToZodOptions): ResolvedOptions {
     strictObjects: options.strictObjects ?? false,
     mediaTypes: options.mediaTypes ?? ["application/json"],
     includeDeprecated: options.includeDeprecated ?? true,
+    includeDefaultValues: options.includeDefaultValues ?? false,
     onUnsupported: options.onUnsupported ?? "warn",
   };
 }
@@ -512,11 +514,11 @@ function convertRequestBody(body: unknown, path: string, shared: SharedContext):
 function convertResponse(response: unknown, path: string, shared: SharedContext): string {
   const refName = reusableRefName(response, "responses", path, shared);
   if (refName) return refName;
-  if (isRefObject(response)) return "{ description: \"\", headers: z.object({}), content: {} }";
+  if (isRefObject(response)) return defaultResponseExpression(shared);
   const object = resolveReusableRef(response, "responses", path, shared) ?? asRecord(response);
   if (!object) {
     shared.diagnostics.push(diagnostic("invalid.response", "Response must be an object.", path, shared.options));
-    return "{ description: \"\", headers: z.object({}), content: {} }";
+    return defaultResponseExpression(shared);
   }
   const headers = asRecord(object.headers) ?? {};
   const headerSchemas: Record<string, string> = {};
@@ -527,11 +529,22 @@ function convertResponse(response: unknown, path: string, shared: SharedContext)
   if (object.links !== undefined) {
     shared.diagnostics.push(diagnostic("unsupported.links", "Response links are not supported.", `${path}/links`, shared.options));
   }
-  return objectExpression({
-    description: JSON.stringify(typeof object.description === "string" ? object.description : ""),
-    headers: zodObjectExpression(headerSchemas),
-    content: objectExpression(Object.fromEntries(entries), 0),
-  }, 0);
+  const responseProperties: Record<string, string> = {};
+  if (shared.options.includeDefaultValues || typeof object.description === "string") {
+    responseProperties.description = JSON.stringify(typeof object.description === "string" ? object.description : "");
+  }
+  if (shared.options.includeDefaultValues || Object.keys(headerSchemas).length > 0) {
+    responseProperties.headers = zodObjectExpression(headerSchemas);
+  }
+  if (shared.options.includeDefaultValues || entries.length > 0) {
+    responseProperties.content = objectExpression(Object.fromEntries(entries), 0);
+  }
+  return objectExpression(responseProperties, 0);
+}
+
+function defaultResponseExpression(shared: SharedContext): string {
+  if (!shared.options.includeDefaultValues) return "{}";
+  return "{ description: \"\", headers: z.object({}), content: {} }";
 }
 
 function convertSecurityScheme(scheme: unknown, path: string, shared: SharedContext): string {
@@ -621,12 +634,18 @@ function convertOperations(documentObject: Record<string, unknown> | undefined, 
         operationId: JSON.stringify(baseName),
         method: JSON.stringify(method),
         path: JSON.stringify(pathKey),
-        tags: arrayLiteral(tags.map((tag) => JSON.stringify(tag))),
-        deprecated: operation.deprecated === true ? "true" : "false",
-        security: literalObjectExpression(security, 0),
-        request,
-        responses,
       };
+      if (shared.options.includeDefaultValues || tags.length > 0) {
+        operationProperties.tags = arrayLiteral(tags.map((tag) => JSON.stringify(tag)));
+      }
+      if (shared.options.includeDefaultValues || operation.deprecated === true) {
+        operationProperties.deprecated = operation.deprecated === true ? "true" : "false";
+      }
+      if (shared.options.includeDefaultValues || !Array.isArray(security) || security.length > 0) {
+        operationProperties.security = literalObjectExpression(security, 0);
+      }
+      operationProperties.request = request;
+      operationProperties.responses = responses;
       if (typeof operation.summary === "string") operationProperties.summary = JSON.stringify(operation.summary);
       if (typeof operation.description === "string") operationProperties.description = JSON.stringify(operation.description);
       if (operation.externalDocs !== undefined) operationProperties.externalDocs = literalObjectExpression(operation.externalDocs, 0);
@@ -682,13 +701,16 @@ function convertOperationRequest(
   const body = operation.requestBody === undefined
     ? "undefined"
     : convertRequestBody(operation.requestBody, `${operationPath}/requestBody`, shared);
-  const requestProperties: Record<string, string> = {
-    params: zodObjectExpression(containers.params),
-    query: zodObjectExpression(containers.query),
-    headers: zodObjectExpression(containers.headers),
-    cookies: zodObjectExpression(containers.cookies),
-    body,
-  };
+  const requestProperties: Record<string, string> = {};
+  for (const key of ["params", "query", "headers", "cookies"] as const) {
+    const expression = zodObjectExpression(containers[key]);
+    if (shared.options.includeDefaultValues || expression !== "z.object({})") {
+      requestProperties[key] = expression;
+    }
+  }
+  if (shared.options.includeDefaultValues || body !== "undefined") {
+    requestProperties.body = body;
+  }
   if (serialization.length > 0) {
     requestProperties.serialization = arrayExpression(serialization, 0);
   }

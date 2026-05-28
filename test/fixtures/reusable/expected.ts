@@ -40,18 +40,12 @@ export const createItemOperation = {
   operationId: "createItem",
   method: "post",
   path: "/items",
-  tags: [],
-  deprecated: false,
   security: [
     {
       OAuthAuth: ["items:write"],
     },
   ],
   request: {
-    params: z.object({}),
-    query: z.object({}),
-    headers: z.object({}),
-    cookies: z.object({}),
     body: ItemBodyRequestBody,
   },
   responses: {
@@ -65,8 +59,6 @@ export const readItemOperation = {
   operationId: "readItem",
   method: "get",
   path: "/items/{itemId}",
-  tags: [],
-  deprecated: false,
   security: [
     {
       ApiKeyAuth: [],
@@ -76,12 +68,9 @@ export const readItemOperation = {
     params: z.object({
       itemId: ItemIdParameter,
     }),
-    query: z.object({}),
     headers: z.object({
       "x-trace-id": TraceIdParameter,
     }),
-    cookies: z.object({}),
-    body: undefined,
   },
   responses: {
     "200": ItemResponseResponse,

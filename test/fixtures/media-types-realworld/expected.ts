@@ -27,20 +27,12 @@ export const importDocumentOperation = {
   operationId: "importDocument",
   method: "post",
   path: "/imports",
-  tags: [],
-  deprecated: false,
-  security: [],
   request: {
-    params: z.object({}),
-    query: z.object({}),
-    headers: z.object({}),
-    cookies: z.object({}),
     body: JsonImportSchema.optional(),
   },
   responses: {
     "200": {
       description: "Imported",
-      headers: z.object({}),
       content: {
         "application/json": ImportResultSchema,
       },

@@ -17,17 +17,10 @@ export const missingPathParamOperation = {
   operationId: "missingPathParam",
   method: "get",
   path: "/missing/{userId}",
-  tags: [],
-  deprecated: false,
-  security: [],
   request: {
     params: z.object({
       unused: z.string(),
     }),
-    query: z.object({}),
-    headers: z.object({}),
-    cookies: z.object({}),
-    body: undefined,
     serialization: [
       {
         "in": "path",
@@ -39,8 +32,6 @@ export const missingPathParamOperation = {
   responses: {
     "200": {
       description: "linked",
-      headers: z.object({}),
-      content: {},
     },
   },
 } as const;
@@ -51,16 +42,7 @@ export const noResponsesOperation = {
   operationId: "noResponses",
   method: "get",
   path: "/no-responses",
-  tags: [],
-  deprecated: false,
-  security: [],
-  request: {
-    params: z.object({}),
-    query: z.object({}),
-    headers: z.object({}),
-    cookies: z.object({}),
-    body: undefined,
-  },
+  request: {},
   responses: {},
 } as const;
 export type NoResponsesRequest = typeof noResponsesOperation.request;
@@ -70,8 +52,6 @@ export const uploadOperation = {
   operationId: "upload",
   method: "post",
   path: "/upload",
-  tags: [],
-  deprecated: false,
   security: [
     {
       MissingAuth: [],
@@ -81,13 +61,9 @@ export const uploadOperation = {
     },
   ],
   request: {
-    params: z.object({}),
     query: z.object({
       filter: z.string().optional(),
     }),
-    headers: z.object({}),
-    cookies: z.object({}),
-    body: undefined,
     serialization: [
       {
         "in": "query",

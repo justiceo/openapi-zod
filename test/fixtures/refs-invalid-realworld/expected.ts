@@ -20,22 +20,14 @@ export const getBrokenOperation = {
   operationId: "getBroken",
   method: "get",
   path: "/broken",
-  tags: [],
-  deprecated: false,
-  security: [],
   request: {
-    params: z.object({}),
     query: z.object({
       unknown: z.unknown().optional(),
     }),
-    headers: z.object({}),
-    cookies: z.object({}),
-    body: undefined,
   },
   responses: {
     "200": {
       description: "Broken",
-      headers: z.object({}),
       content: {
         "application/json": z.unknown(),
       },

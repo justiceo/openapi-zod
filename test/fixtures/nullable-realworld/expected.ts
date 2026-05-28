@@ -25,22 +25,15 @@ export const updateProfileOperation = {
   operationId: "updateProfile",
   method: "patch",
   path: "/profiles/{id}",
-  tags: [],
-  deprecated: false,
-  security: [],
   request: {
     params: z.object({
       id: z.string(),
     }),
-    query: z.object({}),
-    headers: z.object({}),
-    cookies: z.object({}),
     body: ProfilePatchSchema.optional(),
   },
   responses: {
     "200": {
       description: "Profile",
-      headers: z.object({}),
       content: {
         "application/json": ProfileSchema,
       },

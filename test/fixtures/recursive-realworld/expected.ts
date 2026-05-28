@@ -25,22 +25,14 @@ export const getCategoryOperation = {
   operationId: "getCategory",
   method: "get",
   path: "/categories/{id}",
-  tags: [],
-  deprecated: false,
-  security: [],
   request: {
     params: z.object({
       id: z.string(),
     }),
-    query: z.object({}),
-    headers: z.object({}),
-    cookies: z.object({}),
-    body: undefined,
   },
   responses: {
     "200": {
       description: "Category",
-      headers: z.object({}),
       content: {
         "application/json": CategorySchema,
       },

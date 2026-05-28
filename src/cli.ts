@@ -22,6 +22,7 @@ type CliOptions = {
   strictObjects: boolean;
   mediaTypes: string[];
   excludeDeprecated: boolean;
+  includeDefaultValues: boolean;
   failOnWarning: boolean;
 };
 
@@ -49,6 +50,7 @@ Options:
   --strict-objects            Generate strict object schemas where possible.
   --media-type <value>        Include an additional request/response media type. Repeatable.
   --exclude-deprecated        Skip deprecated operations and reusable components where possible.
+  --include-default-values    Emit generated default values in operation metadata.
   --fail-on-warning           Exit non-zero when warnings are emitted.
   --help, -h                  Print this help text.
   --version, -v               Print the package version.
@@ -87,6 +89,7 @@ function parseArgs(argv: string[]): ParsedCli {
     strictObjects: false,
     mediaTypes: [],
     excludeDeprecated: false,
+    includeDefaultValues: false,
     failOnWarning: false,
   };
 
@@ -147,6 +150,9 @@ function parseArgs(argv: string[]): ParsedCli {
       case "--exclude-deprecated":
         options.excludeDeprecated = true;
         break;
+      case "--include-default-values":
+        options.includeDefaultValues = true;
+        break;
       case "--fail-on-warning":
         options.failOnWarning = true;
         break;
@@ -190,6 +196,7 @@ async function main(): Promise<void> {
     strictObjects: cliOptions.strictObjects,
     mediaTypes: cliOptions.mediaTypes.length > 0 ? cliOptions.mediaTypes : undefined,
     includeDeprecated: !cliOptions.excludeDeprecated,
+    includeDefaultValues: cliOptions.includeDefaultValues,
   });
 
   await mkdir(cliOptions.output!, { recursive: true });

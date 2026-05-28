@@ -17,14 +17,7 @@ export const createOrderOperation = {
   operationId: "createOrder",
   method: "post",
   path: "/orders",
-  tags: [],
-  deprecated: false,
-  security: [],
   request: {
-    params: z.object({}),
-    query: z.object({}),
-    headers: z.object({}),
-    cookies: z.object({}),
     body: z.object({
       customer: z.object({
       email: z.email(),
@@ -39,7 +32,6 @@ export const createOrderOperation = {
   responses: {
     "201": {
       description: "Created",
-      headers: z.object({}),
       content: {
         "application/json": z.object({
           id: z.string(),

@@ -64,6 +64,22 @@ describe("fixture conversion", () => {
     }));
   });
 
+  it("omits generated default values unless requested", async () => {
+    const document = await loadOpenApiDocument(
+      join("test", "fixtures", "operations", "openapi.yaml"),
+    );
+
+    const compact = convertOpenApiToZod(document);
+    const verbose = convertOpenApiToZod(document, { includeDefaultValues: true });
+
+    expect(compact.outputs[0].contents).not.toContain("deprecated: false");
+    expect(compact.outputs[0].contents).not.toContain("cookies: z.object({})");
+    expect(compact.outputs[0].contents).not.toContain("headers: z.object({}),");
+    expect(verbose.outputs[0].contents).toContain("deprecated: false");
+    expect(verbose.outputs[0].contents).toContain("cookies: z.object({})");
+    expect(verbose.outputs[0].contents).toContain("headers: z.object({}),");
+  });
+
   it("matches library output from the CLI", async () => {
     const fixture = "primitives";
     const document = await loadOpenApiDocument(
@@ -118,10 +134,33 @@ describe("fixture conversion", () => {
     }
   });
 
+  it("applies the CLI include-default-values flag", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
+
+    try {
+      await execFileAsync("npx", [
+        "tsx",
+        "src/cli.ts",
+        "--input",
+        join("test", "fixtures", "operations", "openapi.yaml"),
+        "--output",
+        dir,
+        "--include-default-values",
+      ]);
+      const contents = await readFile(join(dir, "schemas.ts"), "utf8");
+      expect(contents).toContain("deprecated: false");
+      expect(contents).toContain("cookies: z.object({})");
+      expect(contents).toContain("headers: z.object({}),");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("prints CLI help", async () => {
     const result = await execFileAsync("npx", ["tsx", "src/cli.ts", "--help"]);
 
     expect(result.stdout).toContain("Usage: openapi-zod --input <path> --output <dir>");
+    expect(result.stdout).toContain("--include-default-values");
     expect(result.stdout).toContain("--fail-on-warning");
     expect(result.stderr).toBe("");
   });
