@@ -1,0 +1,56 @@
+name: Demo
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - demo/**
+      - src/**
+      - package.json
+      - package-lock.json
+      - tsconfig.json
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-demo:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Assemble demo site
+        run: |
+          rm -rf "$RUNNER_TEMP/demo-site"
+          mkdir -p "$RUNNER_TEMP/demo-site/dist"
+          cp -R demo/. "$RUNNER_TEMP/demo-site/"
+          cp -R dist/. "$RUNNER_TEMP/demo-site/dist/"
+          touch "$RUNNER_TEMP/demo-site/.nojekyll"
+
+      - name: Publish demo branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch --orphan demo
+          git rm -rf --ignore-unmatch .
+          cp -R "$RUNNER_TEMP/demo-site"/. .
+          git add .
+          git commit -m "Deploy demo"
+          git push --force origin demo

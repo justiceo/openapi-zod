@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>openapi-zod demo</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="intro" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">openapi-zod</p>
+          <h1 id="page-title">Convert OpenAPI schemas to Zod</h1>
+        </div>
+        <label class="example-picker">
+          <span>Example schema</span>
+          <select id="example-select"></select>
+        </label>
+      </section>
+
+      <section class="workbench" aria-label="OpenAPI to Zod converter">
+        <article class="pane pane-input">
+          <div class="pane-header">
+            <h2>OpenAPI</h2>
+            <span>YAML</span>
+          </div>
+          <div class="code-editor" id="source-editor">
+            <pre aria-hidden="true"><code id="source-highlight"></code></pre>
+            <textarea
+              id="source-input"
+              aria-label="Editable OpenAPI schema"
+              spellcheck="false"
+            ></textarea>
+          </div>
+        </article>
+
+        <button class="convert-button" id="convert-button" type="button">
+          Convert
+        </button>
+
+        <article class="pane pane-output">
+          <div class="pane-header">
+            <h2>Zod result</h2>
+            <span>TypeScript</span>
+          </div>
+          <pre class="code-output" tabindex="0"><code id="result-output"></code></pre>
+        </article>
+      </section>
+
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
