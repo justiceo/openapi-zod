@@ -1,0 +1,20 @@
+[
+  {
+    "level": "warning",
+    "code": "unsupported.parameterSerialization",
+    "message": "Parameter serialization is not supported.",
+    "path": "#/paths/~1search~1{ids}/get/parameters/0"
+  },
+  {
+    "level": "warning",
+    "code": "unsupported.parameterSerialization",
+    "message": "Parameter serialization is not supported.",
+    "path": "#/paths/~1search~1{ids}/get/parameters/1"
+  },
+  {
+    "level": "warning",
+    "code": "unsupported.parameterSerialization",
+    "message": "Parameter serialization flags are not supported.",
+    "path": "#/paths/~1search~1{ids}/get/parameters/2"
+  }
+]

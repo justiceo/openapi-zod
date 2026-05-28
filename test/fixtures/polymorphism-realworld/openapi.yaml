@@ -1,0 +1,66 @@
+openapi: 3.1.0
+info:
+  title: Polymorphic Events API
+  version: 1.0.0
+paths:
+  /events:
+    post:
+      operationId: ingestEvent
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Event"
+      responses:
+        "202":
+          description: Accepted
+components:
+  schemas:
+    Event:
+      oneOf:
+        - $ref: "#/components/schemas/UserCreatedEvent"
+        - $ref: "#/components/schemas/UserDeletedEvent"
+      discriminator:
+        propertyName: type
+    UserCreatedEvent:
+      type: object
+      required:
+        - type
+        - user
+      properties:
+        type:
+          const: user.created
+        user:
+          $ref: "#/components/schemas/User"
+    UserDeletedEvent:
+      type: object
+      required:
+        - type
+        - id
+      properties:
+        type:
+          const: user.deleted
+        id:
+          type: string
+    User:
+      allOf:
+        - type: object
+          required:
+            - id
+          properties:
+            id:
+              type: string
+        - type: object
+          properties:
+            email:
+              type: string
+              format: email
+    SearchResult:
+      anyOf:
+        - $ref: "#/components/schemas/UserCreatedEvent"
+        - type: object
+          required:
+            - cursor
+          properties:
+            cursor:
+              type: string

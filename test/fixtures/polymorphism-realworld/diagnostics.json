@@ -1,0 +1,8 @@
+[
+  {
+    "level": "warning",
+    "code": "unsupported.discriminator",
+    "message": "Discriminators are not supported.",
+    "path": "#/components/schemas/Event/discriminator"
+  }
+]

@@ -1,10 +1,12 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { convertOpenApiToZod } from "./index.js";
 import { loadOpenApiDocument } from "./loader.js";
 
 type CliOptions = {
+  action: "convert";
   input?: string;
   output?: string;
   outputFile?: string;
@@ -23,8 +25,60 @@ type CliOptions = {
   failOnWarning: boolean;
 };
 
-function parseArgs(argv: string[]): CliOptions {
+type ParsedCli = CliOptions | { action: "help" } | { action: "version" };
+
+const usage = `Usage: openapi-zod --input <path> --output <dir> [options]
+
+Convert an OpenAPI 3.0.x or 3.1.x YAML/JSON document into Zod 4 validators.
+
+Required:
+  --input <path>              OpenAPI YAML or JSON file.
+  --output <dir>              Directory for generated files.
+
+Options:
+  --output-file <name>        Generated file name. Default: schemas.ts.
+  --name-prefix <value>       Prefix for component schema exports.
+  --name-suffix <value>       Suffix for component schema exports. Default: Schema.
+  --operation-prefix <value>  Prefix for operation exports.
+  --operation-suffix <value>  Suffix for operation exports. Default: Operation.
+  --no-types                  Skip inferred schema type exports.
+  --no-route-map              Skip the aggregate routes export.
+  --no-operation-types        Skip inferred operation request and response types.
+  --no-security-validators    Skip security credential validators.
+  --no-metadata               Skip document metadata export.
+  --strict-objects            Generate strict object schemas where possible.
+  --media-type <value>        Include an additional request/response media type. Repeatable.
+  --exclude-deprecated        Skip deprecated operations and reusable components where possible.
+  --fail-on-warning           Exit non-zero when warnings are emitted.
+  --help, -h                  Print this help text.
+  --version, -v               Print the package version.
+`;
+
+function readPackageVersion(): string {
+  const packageJsonUrl = new URL("../package.json", import.meta.url);
+  const packageJson = JSON.parse(readFileSync(packageJsonUrl, "utf8")) as {
+    version?: unknown;
+  };
+  return typeof packageJson.version === "string" ? packageJson.version : "0.0.0";
+}
+
+function isFlag(value: string | undefined): boolean {
+  return value === undefined || value.startsWith("-");
+}
+
+function requireValue(arg: string, value: string | undefined): string {
+  if (value === undefined || isFlag(value)) {
+    throw new Error(`${arg} requires a value`);
+  }
+  return value;
+}
+
+function parseArgs(argv: string[]): ParsedCli {
+  if (argv.includes("--help") || argv.includes("-h")) return { action: "help" };
+  if (argv.includes("--version") || argv.includes("-v")) return { action: "version" };
+
   const options: CliOptions = {
+    action: "convert",
     noTypes: false,
     noRouteMap: false,
     noOperationTypes: false,
@@ -41,31 +95,31 @@ function parseArgs(argv: string[]): CliOptions {
     const value = argv[index + 1];
     switch (arg) {
       case "--input":
-        options.input = value;
+        options.input = requireValue(arg, value);
         index += 1;
         break;
       case "--output":
-        options.output = value;
+        options.output = requireValue(arg, value);
         index += 1;
         break;
       case "--output-file":
-        options.outputFile = value;
+        options.outputFile = requireValue(arg, value);
         index += 1;
         break;
       case "--name-prefix":
-        options.namePrefix = value;
+        options.namePrefix = requireValue(arg, value);
         index += 1;
         break;
       case "--name-suffix":
-        options.nameSuffix = value;
+        options.nameSuffix = requireValue(arg, value);
         index += 1;
         break;
       case "--operation-prefix":
-        options.operationPrefix = value;
+        options.operationPrefix = requireValue(arg, value);
         index += 1;
         break;
       case "--operation-suffix":
-        options.operationSuffix = value;
+        options.operationSuffix = requireValue(arg, value);
         index += 1;
         break;
       case "--no-types":
@@ -87,7 +141,7 @@ function parseArgs(argv: string[]): CliOptions {
         options.strictObjects = true;
         break;
       case "--media-type":
-        options.mediaTypes.push(value);
+        options.mediaTypes.push(requireValue(arg, value));
         index += 1;
         break;
       case "--exclude-deprecated":
@@ -97,6 +151,9 @@ function parseArgs(argv: string[]): CliOptions {
         options.failOnWarning = true;
         break;
       default:
+        if (arg.startsWith("-")) {
+          throw new Error(`Unknown argument: ${arg}`);
+        }
         throw new Error(`Unknown argument: ${arg}`);
     }
   }
@@ -109,6 +166,15 @@ function parseArgs(argv: string[]): CliOptions {
 
 async function main(): Promise<void> {
   const cliOptions = parseArgs(process.argv.slice(2));
+  if (cliOptions.action === "help") {
+    process.stdout.write(usage);
+    return;
+  }
+  if (cliOptions.action === "version") {
+    process.stdout.write(`${readPackageVersion()}\n`);
+    return;
+  }
+
   const document = await loadOpenApiDocument(cliOptions.input!);
   const result = convertOpenApiToZod(document, {
     outputFileName: cliOptions.outputFile,

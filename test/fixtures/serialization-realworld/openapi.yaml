@@ -1,0 +1,49 @@
+openapi: 3.1.0
+info:
+  title: Search API
+  version: 1.0.0
+paths:
+  /search/{ids}:
+    get:
+      operationId: search
+      parameters:
+        - name: ids
+          in: path
+          required: true
+          style: label
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+        - name: filter
+          in: query
+          style: deepObject
+          explode: true
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+        - name: X-Trace
+          in: header
+          allowEmptyValue: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+components:
+  schemas:
+    SearchSummary:
+      type: object
+      properties:
+        total:
+          type: integer

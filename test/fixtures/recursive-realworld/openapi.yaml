@@ -1,0 +1,48 @@
+openapi: 3.1.0
+info:
+  title: Recursive Catalog API
+  version: 1.0.0
+paths:
+  /categories/{id}:
+    get:
+      operationId: getCategory
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+components:
+  schemas:
+    Category:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        parent:
+          anyOf:
+            - $ref: "#/components/schemas/Category"
+            - type: "null"
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/Category"
+    CategoryEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/components/schemas/Category"

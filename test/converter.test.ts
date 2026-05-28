@@ -21,6 +21,14 @@ const fixtures = [
   "defaults",
   "advanced",
   "metadata-advanced",
+  "recursive-realworld",
+  "inline-realworld",
+  "polymorphism-realworld",
+  "nullable-realworld",
+  "serialization-realworld",
+  "media-types-realworld",
+  "refs-invalid-realworld",
+  "names-realworld",
 ] as const;
 
 async function readFixture(name: string, file: string): Promise<string> {
@@ -108,6 +116,66 @@ describe("fixture conversion", () => {
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
+  });
+
+  it("prints CLI help", async () => {
+    const result = await execFileAsync("npx", ["tsx", "src/cli.ts", "--help"]);
+
+    expect(result.stdout).toContain("Usage: openapi-zod --input <path> --output <dir>");
+    expect(result.stdout).toContain("--fail-on-warning");
+    expect(result.stderr).toBe("");
+  });
+
+  it("prints CLI version", async () => {
+    const packageJson = JSON.parse(await readFile("package.json", "utf8"));
+    const result = await execFileAsync("npx", ["tsx", "src/cli.ts", "--version"]);
+
+    expect(result.stdout.trim()).toBe(packageJson.version);
+    expect(result.stderr).toBe("");
+  });
+
+  it("reports missing CLI flag values", async () => {
+    await expect(execFileAsync("npx", [
+      "tsx",
+      "src/cli.ts",
+      "--input",
+      "--output",
+      "generated",
+    ])).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining("--input requires a value"),
+    });
+  });
+
+  it("reports unknown CLI arguments", async () => {
+    await expect(execFileAsync("npx", [
+      "tsx",
+      "src/cli.ts",
+      "--wat",
+    ])).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining("Unknown argument: --wat"),
+    });
+  });
+
+  it("reports missing required CLI input and output", async () => {
+    await expect(execFileAsync("npx", [
+      "tsx",
+      "src/cli.ts",
+    ])).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining("--input is required"),
+    });
+
+    await expect(execFileAsync("npx", [
+      "tsx",
+      "src/cli.ts",
+      "--input",
+      join("test", "fixtures", "empty", "openapi.yaml"),
+    ])).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining("--output is required"),
+    });
   });
 
   it("fails the CLI on warnings when requested", async () => {
@@ -201,6 +269,43 @@ describe("fixture conversion", () => {
 
         if (checks.some((check) => !check)) {
           throw new Error("Advanced helper validation failed");
+        }
+      `, "utf8");
+
+      await execFileAsync("npx", ["tsx", runnerFile]);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("runtime-validates real-world polymorphism helpers", async () => {
+    const document = await loadOpenApiDocument(
+      join("test", "fixtures", "polymorphism-realworld", "openapi.yaml"),
+    );
+    const result = convertOpenApiToZod(document, {
+      outputFileName: "polymorphism.ts",
+    });
+    const dir = await mkdtemp(join(process.cwd(), ".generated-"));
+    const generatedFile = join(dir, "polymorphism.ts");
+    const runnerFile = join(dir, "run.ts");
+
+    try {
+      await writeFile(generatedFile, result.outputs[0].contents, "utf8");
+      await writeFile(runnerFile, `
+        import { EventSchema, SearchResultSchema } from "./polymorphism.js";
+
+        const checks = [
+          EventSchema.safeParse({
+            type: "user.created",
+            user: { id: "user-1", email: "a@example.com" },
+          }).success,
+          EventSchema.safeParse({ type: "user.deleted", id: "user-1" }).success,
+          !EventSchema.safeParse({ type: "user.deleted", user: { id: "user-1" } }).success,
+          SearchResultSchema.safeParse({ cursor: "next" }).success,
+        ];
+
+        if (checks.some((check) => !check)) {
+          throw new Error("Polymorphism helper validation failed");
         }
       `, "utf8");
 

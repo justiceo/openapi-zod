@@ -1,7 +1,28 @@
 {
   "name": "openapi-zod",
   "version": "0.1.0",
-  "description": "Convert OpenAPI 3.x component schemas to Zod 4 schemas.",
+  "description": "Convert OpenAPI 3.x documents to Zod 4 validators and route metadata.",
+  "license": "MIT",
+  "author": "Justice O.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/justiceo/openapi-zod.git"
+  },
+  "bugs": {
+    "url": "https://github.com/justiceo/openapi-zod/issues"
+  },
+  "homepage": "https://github.com/justiceo/openapi-zod#readme",
+  "keywords": [
+    "openapi",
+    "zod",
+    "typescript",
+    "codegen",
+    "schema",
+    "validation"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "type": "module",
   "bin": {
     "openapi-zod": "./dist/cli.js"
@@ -13,10 +34,13 @@
     }
   },
   "files": [
+    "CHANGELOG.md",
     "dist"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "pack:dry-run": "npm pack --dry-run",
+    "prepublishOnly": "npm run build && npm test && npm run pack:dry-run",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

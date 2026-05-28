@@ -1,0 +1,26 @@
+openapi: 3.1.0
+info:
+  title: Broken References API
+  version: 1.0.0
+paths:
+  /broken:
+    get:
+      operationId: getBroken
+      parameters:
+        - $ref: "#/components/parameters/MissingParameter"
+      responses:
+        "200":
+          description: Broken
+          content:
+            application/json:
+              schema:
+                $ref: "./external.yaml#/components/schemas/ExternalThing"
+components:
+  schemas:
+    BrokenLocal:
+      type: object
+      properties:
+        missing:
+          $ref: "#/components/schemas/MissingSchema"
+    ExternalLocal:
+      $ref: "https://example.com/openapi.yaml#/components/schemas/Thing"

@@ -1,0 +1,26 @@
+[
+  {
+    "level": "error",
+    "code": "invalid.ref",
+    "path": "#/components/schemas/BrokenLocal/properties/missing/$ref",
+    "message": "Reference target \"MissingSchema\" was not found in components.schemas."
+  },
+  {
+    "level": "warning",
+    "code": "unsupported.externalRef",
+    "message": "External references are not supported.",
+    "path": "#/components/schemas/ExternalLocal/$ref"
+  },
+  {
+    "level": "error",
+    "code": "invalid.ref",
+    "message": "Reference target \"MissingParameter\" was not found in components.parameters.",
+    "path": "#/paths/~1broken/get/parameters/0/$ref"
+  },
+  {
+    "level": "warning",
+    "code": "unsupported.externalRef",
+    "message": "External references are not supported.",
+    "path": "#/paths/~1broken/get/responses/200/content/application~1json/schema/$ref"
+  }
+]

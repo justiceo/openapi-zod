@@ -1,0 +1,58 @@
+openapi: 3.1.0
+info:
+  title: Media API
+  version: 1.0.0
+paths:
+  /imports:
+    post:
+      operationId: importDocument
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JsonImport"
+          application/vnd.api+json:
+            schema:
+              $ref: "#/components/schemas/VendorImport"
+          text/csv:
+            schema:
+              type: string
+      responses:
+        "200":
+          description: Imported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportResult"
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/ImportResult"
+components:
+  schemas:
+    JsonImport:
+      type: object
+      required:
+        - records
+      properties:
+        records:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    VendorImport:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    ImportResult:
+      type: object
+      required:
+        - count
+      properties:
+        count:
+          type: integer

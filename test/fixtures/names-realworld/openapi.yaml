@@ -1,0 +1,38 @@
+openapi: 3.1.0
+info:
+  title: Naming Edge API
+  version: 1.0.0
+paths:
+  /reports/{report-id}:
+    get:
+      operationId: 2024-report.lookup
+      parameters:
+        - name: report-id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: include totals
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/2024 report"
+components:
+  schemas:
+    2024 report:
+      type: object
+      required:
+        - report-id
+      properties:
+        report-id:
+          type: string
+        class:
+          type: string
+        total dollars:
+          type: number
