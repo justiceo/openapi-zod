@@ -27,7 +27,10 @@
 
 body {
   margin: 0;
+  height: 100vh;
+  height: 100dvh;
   min-width: 320px;
+  overflow: hidden;
   background:
     linear-gradient(135deg, rgba(15, 118, 110, 0.12), transparent 32rem),
     linear-gradient(225deg, rgba(194, 65, 12, 0.1), transparent 30rem),
@@ -40,8 +43,12 @@ body {
 
 .shell {
   width: min(1500px, calc(100vw - 32px));
+  height: 100vh;
+  height: 100dvh;
   margin: 0 auto;
   padding: 32px 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
 .intro {
@@ -97,23 +104,26 @@ h1 {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  min-height: min(72vh, 860px);
+  gap: 8px;
+  min-height: 0;
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
-  background: var(--panel);
+  background: var(--border);
   box-shadow: var(--shadow);
 }
 
 .pane {
   min-width: 0;
+  min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(420px, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
   background: var(--panel);
 }
 
 .pane-input {
-  border-right: 1px solid var(--border);
+  border-right: 0;
 }
 
 .pane-header {
@@ -206,10 +216,12 @@ h1 {
   background: var(--accent);
   color: #ffffff;
   font-weight: 900;
+  opacity: 0.34;
   box-shadow: 0 18px 34px rgba(15, 118, 110, 0.28);
   cursor: pointer;
   transition:
     background 160ms ease,
+    opacity 160ms ease,
     box-shadow 160ms ease,
     transform 160ms ease;
 }
@@ -217,11 +229,13 @@ h1 {
 .convert-button:hover,
 .convert-button:focus-visible {
   background: var(--accent-strong);
+  opacity: 1;
   transform: translate(-50%, -50%) scale(1.03);
 }
 
 .convert-button.is-active {
   background: var(--active);
+  opacity: 1;
   box-shadow: 0 18px 38px rgba(194, 65, 12, 0.36);
 }
 
@@ -280,14 +294,14 @@ h1 {
 
   .workbench {
     grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   }
 
   .pane {
-    grid-template-rows: auto minmax(360px, 48vh);
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .pane-input {
-    border-right: 0;
     border-bottom: 1px solid var(--border);
   }
 
