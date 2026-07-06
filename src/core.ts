@@ -2,7 +2,7 @@ import type { ConversionDiagnostic } from "./diagnostics.js";
 import { asRecord } from "./emit.js";
 
 export type ConvertOpenApiToZodOptions = {
-  outputMode?: "singleFile";
+  outputMode?: "singleFile" | "multiFile";
   outputFileName?: string;
   schemaNamePrefix?: string;
   schemaNameSuffix?: string;
@@ -64,7 +64,7 @@ export type ConvertContext = {
 
 export function resolveOptions(options: ConvertOpenApiToZodOptions): ResolvedOptions {
   return {
-    outputMode: options.outputMode ?? "singleFile",
+    outputMode: options.outputMode ?? "multiFile",
     outputFileName: options.outputFileName ?? "schemas.ts",
     schemaNamePrefix: options.schemaNamePrefix ?? "",
     schemaNameSuffix: options.schemaNameSuffix ?? "Schema",

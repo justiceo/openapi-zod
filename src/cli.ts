@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { convertOpenApiToZod } from "./index.js";
 import { loadOpenApiDocument } from "./loader.js";
 
@@ -19,6 +19,7 @@ type CliOptions = {
   noOperationTypes: boolean;
   noSecurityValidators: boolean;
   noMetadata: boolean;
+  singleFile: boolean;
   strictObjects: boolean;
   mediaTypes: string[];
   excludeDeprecated: boolean;
@@ -37,7 +38,7 @@ Required:
   --output <dir>              Directory for generated files.
 
 Options:
-  --output-file <name>        Generated file name. Default: schemas.ts.
+  --output-file <name>        Generated file name for --single-file. Default: schemas.ts.
   --name-prefix <value>       Prefix for component schema exports.
   --name-suffix <value>       Suffix for component schema exports. Default: Schema.
   --operation-prefix <value>  Prefix for operation exports.
@@ -47,6 +48,7 @@ Options:
   --no-operation-types        Skip inferred operation request and response types.
   --no-security-validators    Skip security credential validators.
   --no-metadata               Skip document metadata export.
+  --single-file               Emit schemas.ts instead of api/schema.ts, api/operations.ts, and api/router.ts.
   --strict-objects            Generate strict object schemas where possible.
   --media-type <value>        Include an additional request/response media type. Repeatable.
   --exclude-deprecated        Skip deprecated operations and reusable components where possible.
@@ -86,6 +88,7 @@ function parseArgs(argv: string[]): ParsedCli {
     noOperationTypes: false,
     noSecurityValidators: false,
     noMetadata: false,
+    singleFile: false,
     strictObjects: false,
     mediaTypes: [],
     excludeDeprecated: false,
@@ -140,6 +143,9 @@ function parseArgs(argv: string[]): ParsedCli {
       case "--no-metadata":
         options.noMetadata = true;
         break;
+      case "--single-file":
+        options.singleFile = true;
+        break;
       case "--strict-objects":
         options.strictObjects = true;
         break;
@@ -183,6 +189,7 @@ async function main(): Promise<void> {
 
   const document = await loadOpenApiDocument(cliOptions.input!);
   const result = convertOpenApiToZod(document, {
+    outputMode: cliOptions.singleFile ? "singleFile" : "multiFile",
     outputFileName: cliOptions.outputFile,
     schemaNamePrefix: cliOptions.namePrefix,
     schemaNameSuffix: cliOptions.nameSuffix,
@@ -201,9 +208,11 @@ async function main(): Promise<void> {
 
   await mkdir(cliOptions.output!, { recursive: true });
   await Promise.all(
-    result.outputs.map((file) =>
-      writeFile(join(cliOptions.output!, file.path), file.contents, "utf8"),
-    ),
+    result.outputs.map(async (file) => {
+      const filePath = join(cliOptions.output!, file.path);
+      await mkdir(dirname(filePath), { recursive: true });
+      await writeFile(filePath, file.contents, "utf8");
+    }),
   );
 
   for (const item of result.diagnostics) {

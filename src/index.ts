@@ -1,7 +1,7 @@
 import { diagnostic, type ConversionDiagnostic } from "./diagnostics.js";
 import { convertReusableComponents, metadataExpression } from "./components.js";
 import { getSchemas, isSupportedOpenApiVersion, openApiDialect, resolveOptions, type ConvertOpenApiToZodOptions, type HelperName } from "./core.js";
-import { asRecord, buildNames, escapePointer, helperCode } from "./emit.js";
+import { asRecord, buildNames, escapePointer, helperCode, usedIdentifiers } from "./emit.js";
 import { convertOperations } from "./operations.js";
 import { routeHelperCode } from "./route-helper.js";
 import { componentHasCycle, convertSchema, findCycleEdges } from "./schema.js";
@@ -18,6 +18,18 @@ export type ConversionResult = {
   outputs: GeneratedOutput[];
   diagnostics: ConversionDiagnostic[];
 };
+
+const helperExportNames = [
+  "__openapiZodStableJson",
+  "__openapiZodOneOf",
+  "__openapiZodUniqueItems",
+  "__openapiZodPropertyNames",
+  "__openapiZodPatternProperties",
+  "__openapiZodContains",
+  "__openapiZodConditional",
+  "__openapiZodDependentRequired",
+  "__openapiZodDependentSchemas",
+];
 
 export function convertOpenApiToZod(
   document: unknown,
@@ -57,18 +69,18 @@ export function convertOpenApiToZod(
   const componentNames = Object.keys(schemas).sort();
   const names = buildNames(componentNames, resolved, diagnostics);
   const cycles = findCycleEdges(schemas);
-  const lines = ['import * as z from "zod";'];
+  const schemaLines: string[] = [];
 
   if (resolved.includeDocumentMetadata) {
-    lines.push("");
-    lines.push(
+    schemaLines.push("");
+    schemaLines.push(
       `export const openApiMetadata = ${metadataExpression(documentObject, diagnostics, resolved)} as const;`,
     );
   }
-  const helperInsertIndex = lines.length;
+  const helperInsertIndex = schemaLines.length;
 
   for (const componentName of componentNames) {
-    lines.push("");
+    schemaLines.push("");
     const schemaName = names.schemaNames.get(componentName)!;
     const expression = convertSchema(schemas[componentName], {
       path: `#/components/schemas/${escapePointer(componentName)}`,
@@ -83,9 +95,9 @@ export function convertOpenApiToZod(
       inProperty: false,
     });
     const annotation = componentHasCycle(componentName, cycles) ? ": z.ZodTypeAny" : "";
-    lines.push(`export const ${schemaName}${annotation} = ${expression};`);
+    schemaLines.push(`export const ${schemaName}${annotation} = ${expression};`);
     if (resolved.includeInferredTypes) {
-      lines.push(
+      schemaLines.push(
         `export type ${names.typeNames.get(componentName)!} = z.infer<typeof ${schemaName}>;`,
       );
     }
@@ -101,7 +113,7 @@ export function convertOpenApiToZod(
     diagnostics,
     options: resolved,
   });
-  lines.push(...reusable.lines);
+  schemaLines.push(...reusable.lines);
 
   const operations = convertOperations(documentObject, {
     components: asRecord(documentObject?.components) ?? {},
@@ -115,25 +127,66 @@ export function convertOpenApiToZod(
     reusableNames: reusable,
     securityNames: reusable.securityNames,
   });
-  lines.push(...operations.lines);
+
+  if (resolved.outputMode === "singleFile") {
+    const lines = ['import * as z from "zod";', ...schemaLines, ...operations.lines];
+
+    if (resolved.includeRouteMap) {
+      lines.push("");
+      lines.push(`export const routes = [${operations.exportNames.join(", ")}] as const;`);
+      lines.push(...routeHelperCode());
+    }
+
+    if (helpers.size > 0) {
+      lines.splice(helperInsertIndex + 1, 0, ...helperCode(helpers));
+    }
+
+    return {
+      outputs: [
+        {
+          path: resolved.outputFileName,
+          contents: `${lines.join("\n")}\n`,
+        },
+      ],
+      diagnostics,
+    };
+  }
+
+  const schemaOutputLines = ['import * as z from "zod";'];
+  if (helpers.size > 0) schemaOutputLines.push(...helperCode(helpers, true));
+  schemaOutputLines.push(...schemaLines);
+
+  const schemaExportNames = [
+    ...names.schemaNames.values(),
+    ...reusable.parameterNames.values(),
+    ...reusable.requestBodyNames.values(),
+    ...reusable.responseNames.values(),
+    ...reusable.headerNames.values(),
+  ];
+  const operationsText = operations.lines.join("\n");
+  const operationsImports = usedIdentifiers(operationsText, [...schemaExportNames, ...helperExportNames]);
+
+  const operationsOutputLines = ['import * as z from "zod";'];
+  if (operationsImports.length > 0) {
+    operationsOutputLines.push(`import { ${operationsImports.join(", ")} } from "./schema.js";`);
+  }
+  operationsOutputLines.push(...operations.lines);
+
+  const outputs: GeneratedOutput[] = [
+    { path: "api/schema.ts", contents: `${schemaOutputLines.join("\n")}\n` },
+    { path: "api/operations.ts", contents: `${operationsOutputLines.join("\n")}\n` },
+  ];
 
   if (resolved.includeRouteMap) {
-    lines.push("");
-    lines.push(`export const routes = [${operations.exportNames.join(", ")}] as const;`);
-    lines.push(...routeHelperCode());
+    const routerLines = ['import * as z from "zod";'];
+    if (operations.exportNames.length > 0) {
+      routerLines.push(`import { ${operations.exportNames.join(", ")} } from "./operations.js";`);
+    }
+    routerLines.push("");
+    routerLines.push(`export const routes = [${operations.exportNames.join(", ")}] as const;`);
+    routerLines.push(...routeHelperCode());
+    outputs.push({ path: "api/router.ts", contents: `${routerLines.join("\n")}\n` });
   }
 
-  if (helpers.size > 0) {
-    lines.splice(helperInsertIndex, 0, ...helperCode(helpers));
-  }
-
-  return {
-    outputs: [
-      {
-        path: resolved.outputFileName,
-        contents: `${lines.join("\n")}\n`,
-      },
-    ],
-    diagnostics,
-  };
+  return { outputs, diagnostics };
 }

@@ -1,6 +1,6 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
@@ -8,6 +8,7 @@ import { loadOpenApiDocument } from "../src/loader.js";
 import { convertOpenApiToZod } from "../src/index.js";
 
 const execFileAsync = promisify(execFile);
+// todo: use the pattern in scripts/generate-fixtures.mjs which discovers fixtures by scanning test/fixtures/*, for consistency.
 const fixtures = [
   "empty",
   "primitives",
@@ -38,14 +39,33 @@ async function readFixture(name: string, file: string): Promise<string> {
 
 describe("fixture conversion", () => {
   for (const fixture of fixtures) {
-    it(`matches ${fixture}`, async () => {
+    it(`matches ${fixture} in multi-file mode`, async () => {
+      const document = await loadOpenApiDocument(
+        join("test", "fixtures", fixture, "openapi.yaml"),
+      );
+      const expectedSchema = (await readFixture(fixture, "expected-schema.ts")).trimEnd() + "\n";
+      const expectedOperations = (await readFixture(fixture, "expected-operations.ts")).trimEnd() + "\n";
+      const expectedRouter = (await readFixture(fixture, "expected-router.ts")).trimEnd() + "\n";
+      const diagnostics = JSON.parse(await readFixture(fixture, "diagnostics.json"));
+
+      const result = convertOpenApiToZod(document);
+
+      expect(result.outputs).toEqual([
+        { path: "api/schema.ts", contents: expectedSchema },
+        { path: "api/operations.ts", contents: expectedOperations },
+        { path: "api/router.ts", contents: expectedRouter },
+      ]);
+      expect(result.diagnostics).toEqual(diagnostics);
+    });
+
+    it(`matches ${fixture} in single-file mode`, async () => {
       const document = await loadOpenApiDocument(
         join("test", "fixtures", fixture, "openapi.yaml"),
       );
       const expected = (await readFixture(fixture, "expected.ts")).trimEnd() + "\n";
       const diagnostics = JSON.parse(await readFixture(fixture, "diagnostics.json"));
 
-      const result = convertOpenApiToZod(document);
+      const result = convertOpenApiToZod(document, { outputMode: "singleFile" });
 
       expect(result.outputs).toEqual([{ path: "schemas.ts", contents: expected }]);
       expect(result.diagnostics).toEqual(diagnostics);
@@ -72,13 +92,15 @@ describe("fixture conversion", () => {
 
     const compact = convertOpenApiToZod(document);
     const verbose = convertOpenApiToZod(document, { includeDefaultValues: true });
+    const compactContents = compact.outputs.map((output) => output.contents).join("\n");
+    const verboseContents = verbose.outputs.map((output) => output.contents).join("\n");
 
-    expect(compact.outputs[0].contents).not.toContain("deprecated: false");
-    expect(compact.outputs[0].contents).not.toContain("cookies: z.object({})");
-    expect(compact.outputs[0].contents).not.toContain("headers: z.object({}),");
-    expect(verbose.outputs[0].contents).toContain("deprecated: false");
-    expect(verbose.outputs[0].contents).toContain("cookies: z.object({})");
-    expect(verbose.outputs[0].contents).toContain("headers: z.object({}),");
+    expect(compactContents).not.toContain("deprecated: false");
+    expect(compactContents).not.toContain("cookies: z.object({})");
+    expect(compactContents).not.toContain("headers: z.object({}),");
+    expect(verboseContents).toContain("deprecated: false");
+    expect(verboseContents).toContain("cookies: z.object({})");
+    expect(verboseContents).toContain("headers: z.object({}),");
   });
 
   it("matches library output from the CLI", async () => {
@@ -98,8 +120,10 @@ describe("fixture conversion", () => {
         "--output",
         dir,
       ]);
-      const contents = await readFile(join(dir, "schemas.ts"), "utf8");
-      expect(contents).toBe(expected.outputs[0].contents);
+      for (const output of expected.outputs) {
+        const contents = await readFile(join(dir, output.path), "utf8");
+        expect(contents).toBe(output.contents);
+      }
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -116,6 +140,7 @@ describe("fixture conversion", () => {
         join("test", "fixtures", "reusable", "openapi.yaml"),
         "--output",
         dir,
+        "--single-file",
         "--output-file",
         "custom.ts",
         "--no-types",
@@ -146,6 +171,7 @@ describe("fixture conversion", () => {
         join("test", "fixtures", "operations", "openapi.yaml"),
         "--output",
         dir,
+        "--single-file",
         "--include-default-values",
       ]);
       const contents = await readFile(join(dir, "schemas.ts"), "utf8");
@@ -247,12 +273,13 @@ describe("fixture conversion", () => {
         const document = await loadOpenApiDocument(
           join("test", "fixtures", fixture, "openapi.yaml"),
         );
-        const result = convertOpenApiToZod(document, {
-          outputFileName: `${fixture}.ts`,
-        });
-        const generatedFile = join(dir, `${fixture}.ts`);
-        generatedFiles.push(generatedFile);
-        await writeFile(generatedFile, result.outputs[0].contents, "utf8");
+        const result = convertOpenApiToZod(document);
+        for (const output of result.outputs) {
+          const generatedFile = join(dir, fixture, output.path);
+          await mkdir(dirname(generatedFile), { recursive: true });
+          generatedFiles.push(generatedFile);
+          await writeFile(generatedFile, output.contents, "utf8");
+        }
       }
 
       await execFileAsync("npx", [
@@ -346,7 +373,7 @@ describe("fixture conversion", () => {
         },
       },
     };
-    const result = convertOpenApiToZod(document, { outputFileName: "routes.ts" });
+    const result = convertOpenApiToZod(document, { outputMode: "singleFile", outputFileName: "routes.ts" });
     const dir = await mkdtemp(join(process.cwd(), ".generated-"));
     const generatedFile = join(dir, "routes.ts");
     const runnerFile = join(dir, "run.ts");
@@ -427,11 +454,90 @@ describe("fixture conversion", () => {
     }
   });
 
+  it("generates getRoute for runtime route matching in multi-file mode", async () => {
+    const document = {
+      openapi: "3.1.0",
+      info: { title: "Routes", version: "1.0.0" },
+      components: {
+        schemas: {
+          Profile: {
+            type: "object",
+            required: ["displayName"],
+            properties: { displayName: { type: "string" } },
+          },
+        },
+      },
+      paths: {
+        "/users/{userId}/profile": {
+          post: {
+            operationId: "updateProfile",
+            parameters: [
+              { name: "userId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+            ],
+            requestBody: {
+              required: true,
+              content: { "application/json": { schema: { $ref: "#/components/schemas/Profile" } } },
+            },
+            responses: { "204": { description: "OK" } },
+          },
+        },
+      },
+    };
+    const result = convertOpenApiToZod(document);
+    const dir = await mkdtemp(join(process.cwd(), ".generated-"));
+
+    expect(result.outputs.map((output) => output.path)).toEqual([
+      "api/schema.ts",
+      "api/operations.ts",
+      "api/router.ts",
+    ]);
+
+    try {
+      for (const output of result.outputs) {
+        const filePath = join(dir, output.path);
+        await mkdir(dirname(filePath), { recursive: true });
+        await writeFile(filePath, output.contents, "utf8");
+      }
+      const runnerFile = join(dir, "run.ts");
+      await writeFile(runnerFile, `
+        import { getRoute } from "./api/router.js";
+        import { ProfileSchema } from "./api/schema.js";
+
+        const userId = "123e4567-e89b-12d3-a456-426614174000";
+        if (!ProfileSchema.safeParse({ displayName: "Ada" }).success) throw new Error("schema.ts export did not validate");
+
+        const valid = await getRoute({
+          method: "post",
+          path: "/users/" + userId + "/profile",
+          query: {},
+          headers: { "content-type": "application/json" },
+          body: { displayName: "Ada" },
+        });
+        if (!valid.success || valid.operation.operationId !== "updateProfile") throw new Error("multi-file route did not validate");
+        if ((valid.body as { displayName: string }).displayName !== "Ada") throw new Error("multi-file body was not used");
+
+        const invalid = await getRoute({
+          method: "post",
+          path: "/users/" + userId + "/profile",
+          query: {},
+          headers: { "content-type": "application/json" },
+          body: {},
+        });
+        if (invalid.success) throw new Error("multi-file body validation did not reject missing field");
+      `, "utf8");
+
+      await execFileAsync("npx", ["tsx", runnerFile]);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("runtime-validates helper-backed advanced schemas", async () => {
     const document = await loadOpenApiDocument(
       join("test", "fixtures", "advanced", "openapi.yaml"),
     );
     const result = convertOpenApiToZod(document, {
+      outputMode: "singleFile",
       outputFileName: "advanced.ts",
     });
     const dir = await mkdtemp(join(process.cwd(), ".generated-"));
@@ -478,6 +584,7 @@ describe("fixture conversion", () => {
       join("test", "fixtures", "polymorphism-realworld", "openapi.yaml"),
     );
     const result = convertOpenApiToZod(document, {
+      outputMode: "singleFile",
       outputFileName: "polymorphism.ts",
     });
     const dir = await mkdtemp(join(process.cwd(), ".generated-"));

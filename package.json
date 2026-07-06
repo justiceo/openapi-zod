@@ -40,6 +40,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "demo": "npm run build && node scripts/serve-demo.mjs",
+    "generate:fixtures": "tsx scripts/generate-fixtures.mjs",
     "pack:dry-run": "npm pack --dry-run",
     "prepublishOnly": "npm run build && npm test && npm run pack:dry-run",
     "test": "vitest run",

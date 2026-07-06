@@ -37,13 +37,14 @@ const reservedWords = new Set([
   "yield",
 ]);
 
-export function helperCode(helpers: Set<HelperName>): string[] {
+export function helperCode(helpers: Set<HelperName>, exported = false): string[] {
   const lines: string[] = [];
+  const keyword = exported ? "export const" : "const";
   const needsStableJson = helpers.has("uniqueItems") || helpers.has("literal");
   if (needsStableJson) {
     lines.push(
       "",
-      "const __openapiZodStableJson = (value: unknown): string => {",
+      `${keyword} __openapiZodStableJson = (value: unknown): string => {`,
       "  if (value === null || typeof value !== \"object\") return JSON.stringify(value);",
       "  if (Array.isArray(value)) return `[${value.map((item) => __openapiZodStableJson(item)).join(\",\")}]`;",
       "  const object = value as Record<string, unknown>;",
@@ -54,7 +55,7 @@ export function helperCode(helpers: Set<HelperName>): string[] {
   if (helpers.has("oneOf")) {
     lines.push(
       "",
-      "const __openapiZodOneOf = (value: unknown, ctx: z.core.$RefinementCtx, schemas: z.ZodType[]): void => {",
+      `${keyword} __openapiZodOneOf = (value: unknown, ctx: z.core.$RefinementCtx, schemas: z.ZodType[]): void => {`,
       "  let matches = 0;",
       "  for (const schema of schemas) {",
       "    if (schema.safeParse(value).success) matches += 1;",
@@ -66,7 +67,7 @@ export function helperCode(helpers: Set<HelperName>): string[] {
   if (helpers.has("uniqueItems")) {
     lines.push(
       "",
-      "const __openapiZodUniqueItems = (items: unknown[], ctx: z.core.$RefinementCtx): void => {",
+      `${keyword} __openapiZodUniqueItems = (items: unknown[], ctx: z.core.$RefinementCtx): void => {`,
       "  const seen = new Set<string>();",
       "  for (const item of items) {",
       "    const key = __openapiZodStableJson(item);",
@@ -82,7 +83,7 @@ export function helperCode(helpers: Set<HelperName>): string[] {
   if (helpers.has("propertyNames")) {
     lines.push(
       "",
-      "const __openapiZodPropertyNames = (value: Record<string, unknown>, ctx: z.core.$RefinementCtx, schema: z.ZodType): void => {",
+      `${keyword} __openapiZodPropertyNames = (value: Record<string, unknown>, ctx: z.core.$RefinementCtx, schema: z.ZodType): void => {`,
       "  for (const key of Object.keys(value)) {",
       "    if (!schema.safeParse(key).success) ctx.addIssue({ code: \"custom\", path: [key], message: \"Object property name did not match the required schema.\" });",
       "  }",
@@ -92,7 +93,7 @@ export function helperCode(helpers: Set<HelperName>): string[] {
   if (helpers.has("patternProperties")) {
     lines.push(
       "",
-      "const __openapiZodPatternProperties = (value: Record<string, unknown>, ctx: z.core.$RefinementCtx, patterns: Array<[RegExp, z.ZodType]>): void => {",
+      `${keyword} __openapiZodPatternProperties = (value: Record<string, unknown>, ctx: z.core.$RefinementCtx, patterns: Array<[RegExp, z.ZodType]>): void => {`,
       "  for (const [key, child] of Object.entries(value)) {",
       "    for (const [pattern, schema] of patterns) {",
       "      if (pattern.test(key) && !schema.safeParse(child).success) ctx.addIssue({ code: \"custom\", path: [key], message: \"Object property did not match its patternProperties schema.\" });",
@@ -104,7 +105,7 @@ export function helperCode(helpers: Set<HelperName>): string[] {
   if (helpers.has("contains")) {
     lines.push(
       "",
-      "const __openapiZodContains = (items: unknown[], ctx: z.core.$RefinementCtx, schema: z.ZodType, min: number, max: number | undefined): void => {",
+      `${keyword} __openapiZodContains = (items: unknown[], ctx: z.core.$RefinementCtx, schema: z.ZodType, min: number, max: number | undefined): void => {`,
       "  let matches = 0;",
       "  for (const item of items) {",
       "    if (schema.safeParse(item).success) matches += 1;",
@@ -117,7 +118,7 @@ export function helperCode(helpers: Set<HelperName>): string[] {
   if (helpers.has("conditional")) {
     lines.push(
       "",
-      "const __openapiZodConditional = (value: unknown, ctx: z.core.$RefinementCtx, ifSchema: z.ZodType, thenSchema: z.ZodType | undefined, elseSchema: z.ZodType | undefined): void => {",
+      `${keyword} __openapiZodConditional = (value: unknown, ctx: z.core.$RefinementCtx, ifSchema: z.ZodType, thenSchema: z.ZodType | undefined, elseSchema: z.ZodType | undefined): void => {`,
       "  const matched = ifSchema.safeParse(value).success;",
       "  if (matched && thenSchema && !thenSchema.safeParse(value).success) ctx.addIssue({ code: \"custom\", message: \"Value did not match the conditional then schema.\" });",
       "  if (!matched && elseSchema && !elseSchema.safeParse(value).success) ctx.addIssue({ code: \"custom\", message: \"Value did not match the conditional else schema.\" });",
@@ -127,7 +128,7 @@ export function helperCode(helpers: Set<HelperName>): string[] {
   if (helpers.has("dependentRequired")) {
     lines.push(
       "",
-      "const __openapiZodDependentRequired = (value: Record<string, unknown>, ctx: z.core.$RefinementCtx, dependencies: Record<string, string[]>): void => {",
+      `${keyword} __openapiZodDependentRequired = (value: Record<string, unknown>, ctx: z.core.$RefinementCtx, dependencies: Record<string, string[]>): void => {`,
       "  for (const [key, required] of Object.entries(dependencies)) {",
       "    if (!(key in value)) continue;",
       "    for (const requiredKey of required) {",
@@ -140,7 +141,7 @@ export function helperCode(helpers: Set<HelperName>): string[] {
   if (helpers.has("dependentSchemas")) {
     lines.push(
       "",
-      "const __openapiZodDependentSchemas = (value: Record<string, unknown>, ctx: z.core.$RefinementCtx, schemas: Array<[string, z.ZodType]>): void => {",
+      `${keyword} __openapiZodDependentSchemas = (value: Record<string, unknown>, ctx: z.core.$RefinementCtx, schemas: Array<[string, z.ZodType]>): void => {`,
       "  for (const [key, schema] of schemas) {",
       "    if (key in value && !schema.safeParse(value).success) ctx.addIssue({ code: \"custom\", path: [key], message: `Object did not match dependent schema for ${key}.` });",
       "  }",
@@ -319,6 +320,15 @@ export function isSchemaObject(value: unknown): value is Record<string, unknown>
 export function asRecord(value: unknown): Record<string, unknown> | undefined {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
   return value as Record<string, unknown>;
+}
+
+export function usedIdentifiers(text: string, candidates: Iterable<string>): string[] {
+  const used: string[] = [];
+  for (const candidate of candidates) {
+    // todo: investigate if a literal `$` in an identifier acts as an end-of-string anchor instead of a literal character, breaking the match.
+    if (new RegExp(`\\b${candidate}\\b`).test(text)) used.push(candidate);
+  }
+  return used.sort();
 }
 
 export function escapePointer(value: string): string {

@@ -7,6 +7,7 @@ This project follows semantic versioning. Patch releases contain compatible bug 
 ## Unreleased
 
 - Add production-readiness documentation, package metadata, CI, release automation, CLI hardening, support matrix, and expanded fixture coverage.
+- Split generated output into `api/schema.ts`, `api/operations.ts`, and `api/router.ts` by default (multi-file mode); pass `outputMode: "singleFile"` or `--single-file` to keep the combined `schemas.ts` output.
 
 ## 0.1.0
 

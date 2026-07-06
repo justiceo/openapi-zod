@@ -19,7 +19,15 @@ npx openapi-zod --input openapi.yaml --output src/generated
 JSON inputs are also supported:
 
 ```sh
-npx openapi-zod --input openapi.json --output src/generated --output-file schemas.ts
+npx openapi-zod --input openapi.json --output src/generated
+```
+
+By default this writes three files: `api/schema.ts` (Zod schemas and reusable components), `api/operations.ts` (operation metadata, importing from `schema.ts`), and `api/router.ts` (the aggregate `routes` export and route-matching helpers, importing from `operations.ts`).
+
+Pass `--single-file` to emit one combined file instead:
+
+```sh
+npx openapi-zod --input openapi.json --output src/generated --single-file --output-file schemas.ts
 ```
 
 Useful flags:
@@ -27,7 +35,7 @@ Useful flags:
 ```text
 --input <path>              OpenAPI YAML or JSON file. Required.
 --output <dir>              Directory for generated files. Required.
---output-file <name>        Generated file name. Default: schemas.ts.
+--output-file <name>        Generated file name for --single-file. Default: schemas.ts.
 --name-prefix <value>       Prefix for component schema exports.
 --name-suffix <value>       Suffix for component schema exports. Default: Schema.
 --operation-prefix <value>  Prefix for operation exports.
@@ -37,6 +45,7 @@ Useful flags:
 --no-operation-types        Skip inferred operation request and response types.
 --no-security-validators    Skip security credential validators.
 --no-metadata               Skip document metadata export.
+--single-file               Emit schemas.ts instead of api/schema.ts, api/operations.ts, and api/router.ts.
 --strict-objects            Generate strict object schemas where possible.
 --media-type <value>        Include an additional request/response media type. Repeatable.
 --exclude-deprecated        Skip deprecated operations and reusable components where possible.
@@ -59,7 +68,7 @@ The CLI exits non-zero when conversion emits errors, or when `--fail-on-warning`
 import { convertOpenApiToZod } from "openapi-zod";
 
 const result = convertOpenApiToZod(openApiDocument, {
-  outputFileName: "schemas.ts",
+  outputMode: "multiFile",
   includeInferredTypes: true,
   includeRouteMap: true,
 });
@@ -78,7 +87,9 @@ The library does not read files, create directories, write outputs, or exit the 
 
 ## Generated Output
 
-Generated files import Zod 4 and export stable TypeScript declarations:
+By default, generated output is split across three files that import Zod 4 and export stable TypeScript declarations:
+
+`api/schema.ts`:
 
 ```ts
 import * as z from "zod";
@@ -90,6 +101,13 @@ export const UserSchema = z.object({
 });
 
 export type User = z.infer<typeof UserSchema>;
+```
+
+`api/operations.ts`:
+
+```ts
+import * as z from "zod";
+import { UserSchema } from "./schema.js";
 
 export const getUserOperation = {
   method: "get",
@@ -102,9 +120,19 @@ export const getUserOperation = {
     200: UserSchema,
   },
 } as const;
+```
+
+`api/router.ts`:
+
+```ts
+import * as z from "zod";
+import { getUserOperation } from "./operations.js";
 
 export const routes = [getUserOperation] as const;
+// getRoute() and route-matching helpers follow.
 ```
+
+Pass `outputMode: "singleFile"` (or `--single-file` on the CLI) to combine these into one `schemas.ts` file instead.
 
 Exact output depends on the OpenAPI document and selected options. Component names, reusable components, paths, and operations are sorted for deterministic generation.
 
@@ -113,8 +141,8 @@ Exact output depends on the OpenAPI document and selected options. Component nam
 
 | Option | Default |
 | --- | --- |
-| `outputMode` | `"singleFile"` |
-| `outputFileName` | `"schemas.ts"` |
+| `outputMode` | `"multiFile"` |
+| `outputFileName` | `"schemas.ts"` (used only when `outputMode` is `"singleFile"`) |
 | `schemaNamePrefix` | `""` |
 | `schemaNameSuffix` | `"Schema"` |
 | `operationNamePrefix` | `""` |

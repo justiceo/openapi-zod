@@ -1,1 +1,8 @@
-[{"level":"warning","code":"unsupported.mediaType","message":"No configured media types were found.","path":"#/paths/~1pet~1{petId}~1uploadImage/post/requestBody/content"}]
+[
+  {
+    "level": "warning",
+    "code": "unsupported.mediaType",
+    "message": "No configured media types were found.",
+    "path": "#/paths/~1pet~1{petId}~1uploadImage/post/requestBody/content"
+  }
+]
