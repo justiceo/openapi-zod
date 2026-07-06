@@ -1,3 +1,5 @@
+// AUTO-GENERATED FILE. DO NOT EDIT.
+
 import * as z from "zod";
 import { ApiResponseSchema, OrderSchema, PetSchema, UserSchema } from "./schema.js";
 
