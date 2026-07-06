@@ -29,6 +29,7 @@ const fixtures = [
   "media-types-realworld",
   "refs-invalid-realworld",
   "names-realworld",
+  "petstore",
 ] as const;
 
 async function readFixture(name: string, file: string): Promise<string> {
