@@ -192,7 +192,7 @@ export async function getRoute(request: RouteRequest, options: { readBody?: bool
 }
 
 function buildRouteMatcher(items: readonly RouteOperation[]): RouteMatcher {
-  const matcher: RouteMatcher = { exact: {}, dynamic: {} };
+  const matcher: RouteMatcher = { exact: Object.create(null), dynamic: Object.create(null) };
   for (const operation of items) {
     const segments = routePathSegments(operation.path);
     const hasParams = segments.some((segment) => segment.startsWith("{") && segment.endsWith("}"));
@@ -200,16 +200,16 @@ function buildRouteMatcher(items: readonly RouteOperation[]): RouteMatcher {
       matcher.exact[`${operation.method}:${operation.path}`] = operation;
       continue;
     }
-    const methodBuckets = matcher.dynamic[operation.method] ??= {};
-    let node = methodBuckets[segments.length] ??= { literals: {} };
+    const methodBuckets = matcher.dynamic[operation.method] ??= Object.create(null);
+    let node = methodBuckets[segments.length] ??= { literals: Object.create(null) };
     for (const segment of segments) {
       const isParam = segment.startsWith("{") && segment.endsWith("}");
       if (isParam) {
         const name = segment.slice(1, -1);
-        node.param ??= { name, node: { literals: {} } };
+        node.param ??= { name, node: { literals: Object.create(null) } };
         node = node.param.node;
       } else {
-        node = node.literals[segment] ??= { literals: {} };
+        node = node.literals[segment] ??= { literals: Object.create(null) };
       }
     }
     node.operation ??= operation;
