@@ -129,6 +129,16 @@ describe("fixture conversion", () => {
     }
   });
 
+  it("prefixes generated output with an auto-generated banner", async () => {
+    const document = await loadOpenApiDocument(
+      join("test", "fixtures", "primitives", "openapi.yaml"),
+    );
+    const result = convertOpenApiToZod(document);
+    for (const output of result.outputs) {
+      expect(output.contents.startsWith("// AUTO-GENERATED FILE. DO NOT EDIT.\n\n")).toBe(true);
+    }
+  });
+
   it("applies CLI output and generation flags", async () => {
     const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
 

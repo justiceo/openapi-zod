@@ -19,6 +19,8 @@ export type ConversionResult = {
   diagnostics: ConversionDiagnostic[];
 };
 
+const generatedBanner = "// AUTO-GENERATED FILE. DO NOT EDIT.";
+
 const helperExportNames = [
   "__openapiZodStableJson",
   "__openapiZodOneOf",
@@ -145,7 +147,7 @@ export function convertOpenApiToZod(
       outputs: [
         {
           path: resolved.outputFileName,
-          contents: `${lines.join("\n")}\n`,
+          contents: `${generatedBanner}\n\n${lines.join("\n")}\n`,
         },
       ],
       diagnostics,
@@ -173,8 +175,8 @@ export function convertOpenApiToZod(
   operationsOutputLines.push(...operations.lines);
 
   const outputs: GeneratedOutput[] = [
-    { path: "api/schema.ts", contents: `${schemaOutputLines.join("\n")}\n` },
-    { path: "api/operations.ts", contents: `${operationsOutputLines.join("\n")}\n` },
+    { path: "api/schema.ts", contents: `${generatedBanner}\n\n${schemaOutputLines.join("\n")}\n` },
+    { path: "api/operations.ts", contents: `${generatedBanner}\n\n${operationsOutputLines.join("\n")}\n` },
   ];
 
   if (resolved.includeRouteMap) {
@@ -185,7 +187,7 @@ export function convertOpenApiToZod(
     routerLines.push("");
     routerLines.push(`export const routes = [${operations.exportNames.join(", ")}] as const;`);
     routerLines.push(...routeHelperCode());
-    outputs.push({ path: "api/router.ts", contents: `${routerLines.join("\n")}\n` });
+    outputs.push({ path: "api/router.ts", contents: `${generatedBanner}\n\n${routerLines.join("\n")}\n` });
   }
 
   return { outputs, diagnostics };
