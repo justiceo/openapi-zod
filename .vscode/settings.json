@@ -1,0 +1,54 @@
+{
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit",
+    "source.removeUnusedImports": "explicit",
+    "source.fixAll": "explicit"
+  },
+
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.rulers": [80],
+
+  // Use VS Code's built-in formatters
+  "[typescript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "vscode.markdown-language-features"
+  },
+
+  // Enable built-in JS/TS diagnostics
+  "js/ts.validate.enabled": true,
+
+  // Match project style: single quotes + semicolons
+  "js/ts.preferences.quoteStyle": "single",
+  "js/ts.format.semicolons": "insert",
+
+  // Spacing and brace style to mirror Prettier-like defaults
+  "js/ts.format.insertSpaceAfterCommaDelimiter": true,
+  "js/ts.format.insertSpaceAfterConstructor": true,
+  "js/ts.format.insertSpaceAfterSemicolonInForStatements": true,
+  "js/ts.format.insertSpaceBeforeAndAfterBinaryOperators": true,
+  "js/ts.format.insertSpaceAfterKeywordsInControlFlowStatements": true,
+  "js/ts.format.insertSpaceBeforeFunctionParenthesis": false,
+  "js/ts.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": true,
+  "js/ts.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
+  "js/ts.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis": false,
+  "js/ts.format.placeOpenBraceOnNewLineForFunctions": false,
+  "js/ts.format.placeOpenBraceOnNewLineForControlBlocks": false,
+
+  // Keep imports concise
+  "js/ts.preferences.importModuleSpecifier": "shortest",
+  "IDX.aI.enableInlineCompletion": true,
+  "IDX.aI.enableCodebaseIndexing": true
+}
