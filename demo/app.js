@@ -1,5 +1,10 @@
 import { parse } from "https://esm.sh/yaml@2.8.0";
-import { convertOpenApiToZod } from "./dist/index.js";
+
+// The published demo bundles the library at "./dist"; the local dev server
+// (npm run demo) serves this file straight from the repo, where the build
+// output lands one level up at the repo-root "dist" instead.
+const libraryPath = location.hostname === "localhost" ? "../dist/index.js" : "./dist/index.js";
+const { convertOpenApiToZod } = await import(libraryPath);
 
 const examples = [
   {
@@ -371,11 +376,14 @@ const select = document.querySelector("#example-select");
 const sourceInput = document.querySelector("#source-input");
 const sourceHighlight = document.querySelector("#source-highlight");
 const resultOutput = document.querySelector("#result-output");
+const outputTabs = document.querySelector("#output-tabs");
 const convertButton = document.querySelector("#convert-button");
+const multiFileToggle = document.querySelector("#multi-file-toggle");
 const status = document.querySelector("#status");
 
 let lastConvertedSource = "";
-let lastGoodOutput = "";
+let lastGoodOutputs = [];
+let activeTabPath = null;
 
 function escapeHtml(value) {
   return value
@@ -464,6 +472,41 @@ function renderResult(value) {
   resultOutput.innerHTML = highlightTypeScript(value);
 }
 
+function pickActiveIndex(outputs) {
+  if (outputs.length === 0) return 0;
+  const index = outputs.findIndex((item) => item.path === activeTabPath);
+  return index === -1 ? 0 : index;
+}
+
+function renderTabs(outputs, activeIndex) {
+  outputTabs.innerHTML = "";
+  const showTabs = multiFileToggle.checked && outputs.length > 1;
+  outputTabs.hidden = !showTabs;
+  if (!showTabs) return;
+
+  for (const [index, output] of outputs.entries()) {
+    const tab = document.createElement("button");
+    tab.type = "button";
+    tab.className = "output-tab";
+    tab.textContent = output.path;
+    tab.setAttribute("role", "tab");
+    tab.setAttribute("aria-selected", String(index === activeIndex));
+    tab.classList.toggle("is-active", index === activeIndex);
+    tab.addEventListener("click", () => {
+      activeTabPath = output.path;
+      showOutputs(outputs);
+    });
+    outputTabs.append(tab);
+  }
+}
+
+function showOutputs(outputs) {
+  const activeIndex = pickActiveIndex(outputs);
+  activeTabPath = outputs[activeIndex]?.path ?? null;
+  renderTabs(outputs, activeIndex);
+  renderResult(outputs[activeIndex]?.contents ?? "");
+}
+
 function setStatus(message, isError = false) {
   status.textContent = message;
   status.classList.toggle("is-error", isError);
@@ -489,16 +532,17 @@ function diagnosticSummary(diagnostics) {
 function convertSource() {
   try {
     const document = parse(sourceInput.value);
-    const result = convertOpenApiToZod(document);
-    const output = result.outputs.map((item) => item.contents).join("\n");
+    const result = convertOpenApiToZod(document, {
+      outputMode: multiFileToggle.checked ? "multiFile" : "singleFile",
+    });
 
     lastConvertedSource = sourceInput.value;
-    lastGoodOutput = output;
-    renderResult(output);
+    lastGoodOutputs = result.outputs;
+    showOutputs(result.outputs);
     setStatus(diagnosticSummary(result.diagnostics), result.diagnostics.some((item) => item.level === "error"));
     setDirtyState();
   } catch (error) {
-    renderResult(lastGoodOutput);
+    showOutputs(lastGoodOutputs);
     setStatus(error instanceof Error ? error.message : String(error), true);
     setDirtyState();
   }
@@ -530,5 +574,9 @@ sourceInput.addEventListener("scroll", () => {
 
 convertButton.addEventListener("click", convertSource);
 select.addEventListener("change", () => selectExample(select.value));
+multiFileToggle.addEventListener("change", () => {
+  activeTabPath = null;
+  convertSource();
+});
 
 selectExample(examples[0].id);

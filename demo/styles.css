@@ -126,6 +126,10 @@ h1 {
   border-right: 0;
 }
 
+.pane-output {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
 .pane-header {
   display: flex;
   align-items: center;
@@ -146,6 +150,64 @@ h1 {
   font-size: 0.78rem;
   font-weight: 800;
   text-transform: uppercase;
+}
+
+.pane-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.multi-file-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.multi-file-toggle input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.output-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 8px 12px 0;
+  background: var(--panel-alt);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.output-tabs[hidden] {
+  display: none;
+}
+
+.output-tab {
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  padding: 8px 14px;
+  background: var(--panel);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.output-tab.is-active {
+  background: var(--code-bg);
+  color: var(--code-ink);
+  border-color: var(--border);
 }
 
 .code-editor,

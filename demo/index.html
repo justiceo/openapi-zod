@@ -42,8 +42,15 @@
         <article class="pane pane-output">
           <div class="pane-header">
             <h2>Zod result</h2>
-            <span>TypeScript</span>
+            <div class="pane-header-controls">
+              <label class="multi-file-toggle">
+                <input type="checkbox" id="multi-file-toggle" />
+                <span>Multi-file</span>
+              </label>
+              <span>TypeScript</span>
+            </div>
           </div>
+          <div class="output-tabs" id="output-tabs" role="tablist" hidden></div>
           <pre class="code-output" tabindex="0"><code id="result-output"></code></pre>
         </article>
       </section>
