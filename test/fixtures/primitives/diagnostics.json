@@ -8,7 +8,7 @@
   {
     "level": "warning",
     "code": "unsupported.format",
-    "message": "Unsupported string format \"hostname\".",
+    "message": "Unsupported string format \"not-a-real-format\".",
     "path": "#/components/schemas/UnknownFormat/format"
   }
 ]

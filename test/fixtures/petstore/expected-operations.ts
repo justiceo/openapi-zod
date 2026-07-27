@@ -333,7 +333,7 @@ export const getInventoryOperation = {
     "200": {
       description: "successful operation",
       content: {
-        "application/json": z.record(z.string(), z.int()),
+        "application/json": z.record(z.string(), z.int32()),
       },
     },
     "default": {
@@ -506,7 +506,7 @@ export const loginUserOperation = {
       description: "successful operation",
       headers: z.object({
         "x-expires-after": z.iso.datetime().optional(),
-        "x-rate-limit": z.int().optional(),
+        "x-rate-limit": z.int32().optional(),
       }),
       content: {
         "application/json": z.string(),

@@ -113,9 +113,9 @@ function convertTypedSchema(
     case "string":
       return convertString(schema, context);
     case "number":
-      return convertNumber("z.number()", schema, context);
+      return convertNumber(numberBase(schema), schema, context);
     case "integer":
-      return convertNumber("z.int()", schema, context);
+      return convertNumber(integerBase(schema), schema, context);
     case "boolean":
       return "z.boolean()";
     case "null":
@@ -150,6 +150,20 @@ function errorMessageFor(schema: Record<string, unknown>, keyword: string): stri
   return undefined;
 }
 
+// Regex-based approximations for JSON Schema / OpenAPI string formats that zod has no
+// dedicated validator for. These are best-effort (documented in README) rather than
+// fully spec-exact, since implementing the real grammars (RFC 3986/6570, IDNA) would
+// require a parser, not a regex.
+const IDN_HOSTNAME_REGEX =
+  "/^[\\p{L}\\p{N}](?:[\\p{L}\\p{N}-]{0,61}[\\p{L}\\p{N}])?(?:\\.[\\p{L}\\p{N}](?:[\\p{L}\\p{N}-]{0,61}[\\p{L}\\p{N}])?)*$/u";
+const IDN_EMAIL_REGEX = "/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/u";
+const URI_REFERENCE_REGEX = "/^[A-Za-z][A-Za-z0-9+.-]*:\\/\\/[^\\s]*$|^[^\\s:]*$|^\\/[^\\s]*$|^[^\\s]*\\?[^\\s]*$|^[^\\s]*#[^\\s]*$/";
+const IRI_REGEX = "/^[A-Za-z][A-Za-z0-9+.-]*:\\S*$/u";
+const IRI_REFERENCE_REGEX = "/^\\S*$/u";
+const URI_TEMPLATE_REGEX = "/^(?:[^{}]|\\{[^{}]*\\})*$/";
+const JSON_POINTER_REGEX = "/^(?:\\/(?:[^~/]|~0|~1)*)*$/";
+const RELATIVE_JSON_POINTER_REGEX = "/^(?:0|[1-9][0-9]*)(?:#|(?:\\/(?:[^~/]|~0|~1)*)*)$/";
+
 function convertString(schema: Record<string, unknown>, context: ConvertContext): string {
   let expression = "z.string()";
   const customFormat = typeof schema.format === "string" ? context.options.customFormats[schema.format] : undefined;
@@ -176,6 +190,56 @@ function convertString(schema: Record<string, unknown>, context: ConvertContext)
         break;
       case "date":
         expression = "z.iso.date()";
+        break;
+      case "time":
+        expression = "z.iso.time()";
+        break;
+      case "duration":
+        expression = "z.iso.duration()";
+        break;
+      case "hostname":
+        expression = "z.hostname()";
+        break;
+      case "ipv4":
+        expression = "z.ipv4()";
+        break;
+      case "ipv6":
+        expression = "z.ipv6()";
+        break;
+      case "byte":
+        expression = "z.base64()";
+        break;
+      case "password":
+      case "binary":
+        expression = "z.string()";
+        break;
+      case "idn-hostname":
+        expression = `z.stringFormat("idn-hostname", ${IDN_HOSTNAME_REGEX})`;
+        break;
+      case "idn-email":
+        expression = `z.stringFormat("idn-email", ${IDN_EMAIL_REGEX})`;
+        break;
+      case "uri-reference":
+        expression = `z.stringFormat("uri-reference", ${URI_REFERENCE_REGEX})`;
+        break;
+      case "iri":
+        expression = `z.stringFormat("iri", ${IRI_REGEX})`;
+        break;
+      case "iri-reference":
+        expression = `z.stringFormat("iri-reference", ${IRI_REFERENCE_REGEX})`;
+        break;
+      case "uri-template":
+        expression = `z.stringFormat("uri-template", ${URI_TEMPLATE_REGEX})`;
+        break;
+      case "json-pointer":
+        expression = `z.stringFormat("json-pointer", ${JSON_POINTER_REGEX})`;
+        break;
+      case "relative-json-pointer":
+        expression = `z.stringFormat("relative-json-pointer", ${RELATIVE_JSON_POINTER_REGEX})`;
+        break;
+      case "regex":
+        expression =
+          'z.string().refine((value) => { try { new RegExp(value); return true; } catch { return false; } }, "Invalid regular expression")';
         break;
       default:
         addDiagnostic(
@@ -229,6 +293,19 @@ function formatOptionsArgument(schema: Record<string, unknown>, context: Convert
     return "";
   }
   return `, ${literal}`;
+}
+
+// int64 stays z.int() rather than z.int64(): zod's z.int64() validates a bigint, but
+// JSON payloads only ever contain a number literal, so switching would break parsing
+// of ordinary JSON integers for every existing caller.
+function integerBase(schema: Record<string, unknown>): string {
+  return schema.format === "int32" ? "z.int32()" : "z.int()";
+}
+
+function numberBase(schema: Record<string, unknown>): string {
+  if (schema.format === "float") return "z.float32()";
+  if (schema.format === "double") return "z.float64()";
+  return "z.number()";
 }
 
 function convertNumber(

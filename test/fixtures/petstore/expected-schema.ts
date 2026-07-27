@@ -44,7 +44,7 @@ export const openApiMetadata = {
 } as const;
 
 export const ApiResponseSchema = z.object({
-  code: z.int().optional(),
+  code: z.int32().optional(),
   message: z.string().optional(),
   type: z.string().optional(),
 });
@@ -60,7 +60,7 @@ export const OrderSchema = z.object({
   complete: z.boolean().optional(),
   id: z.int().optional(),
   petId: z.int().optional(),
-  quantity: z.int().optional(),
+  quantity: z.int32().optional(),
   shipDate: z.iso.datetime().optional(),
   status: z.enum(["placed", "approved", "delivered"]).optional(),
 });
@@ -89,7 +89,7 @@ export const UserSchema = z.object({
   lastName: z.string().optional(),
   password: z.string().optional(),
   phone: z.string().optional(),
-  userStatus: z.int().optional(),
+  userStatus: z.int32().optional(),
   username: z.string().optional(),
 });
 export type User = z.infer<typeof UserSchema>;

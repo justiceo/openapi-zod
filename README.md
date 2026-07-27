@@ -160,7 +160,15 @@ Exact output depends on the OpenAPI document and selected options. Component nam
 
 ## Custom string formats
 
-`format` values outside the built-in list (`email`, `uuid`, `uri`/`url`, `date-time`, `date`) are diagnosed as `unsupported.format` and fall back to `z.string()`. Register a format name against a function you own to have the generator emit a call to it instead:
+Built-in `format` support covers:
+
+- Exact, using a dedicated Zod validator: `email`, `uuid`, `uri`/`url`, `date-time`, `date`, `time`, `duration`, `hostname`, `ipv4`, `ipv6`, `byte` (base64).
+- Best-effort, using a generated regex via `z.stringFormat(...)` since Zod has no dedicated validator for these: `idn-hostname`, `idn-email`, `uri-reference`, `iri`, `iri-reference`, `uri-template`, `json-pointer`, `relative-json-pointer`. These approximate the JSON Schema grammar rather than fully implementing it (e.g. IDNA punycode rules aren't enforced).
+- `regex`: validated as "is this string a syntactically valid regular expression", not matched against a pattern.
+- No-op pass-through (accepted as any string, no extra validation): `password`, `binary`.
+- Numeric formats on `integer`/`number` schemas: `int32` → `z.int32()`, `float` → `z.float32()`, `double` → `z.float64()`. `int64` intentionally stays mapped to `z.int()` (a safe-integer check) rather than Zod's bigint-based `z.int64()`, since JSON payloads only ever contain a `number` literal and switching would break parsing of ordinary JSON integers; full 64-bit precision is a known limitation.
+
+Any other `format` value is diagnosed as `unsupported.format` and falls back to `z.string()`. Register a format name against a function you own to have the generator emit a call to it instead:
 
 ```ts
 convertOpenApiToZod(document, {

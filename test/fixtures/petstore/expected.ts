@@ -44,7 +44,7 @@ export const openApiMetadata = {
 } as const;
 
 export const ApiResponseSchema = z.object({
-  code: z.int().optional(),
+  code: z.int32().optional(),
   message: z.string().optional(),
   type: z.string().optional(),
 });
@@ -60,7 +60,7 @@ export const OrderSchema = z.object({
   complete: z.boolean().optional(),
   id: z.int().optional(),
   petId: z.int().optional(),
-  quantity: z.int().optional(),
+  quantity: z.int32().optional(),
   shipDate: z.iso.datetime().optional(),
   status: z.enum(["placed", "approved", "delivered"]).optional(),
 });
@@ -89,7 +89,7 @@ export const UserSchema = z.object({
   lastName: z.string().optional(),
   password: z.string().optional(),
   phone: z.string().optional(),
-  userStatus: z.int().optional(),
+  userStatus: z.int32().optional(),
   username: z.string().optional(),
 });
 export type User = z.infer<typeof UserSchema>;
@@ -432,7 +432,7 @@ export const getInventoryOperation = {
     "200": {
       description: "successful operation",
       content: {
-        "application/json": z.record(z.string(), z.int()),
+        "application/json": z.record(z.string(), z.int32()),
       },
     },
     "default": {
@@ -605,7 +605,7 @@ export const loginUserOperation = {
       description: "successful operation",
       headers: z.object({
         "x-expires-after": z.iso.datetime().optional(),
-        "x-rate-limit": z.int().optional(),
+        "x-rate-limit": z.int32().optional(),
       }),
       content: {
         "application/json": z.string(),

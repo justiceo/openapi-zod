@@ -27,4 +27,67 @@ components:
       pattern: "^[a-z0-9-]+$"
     UnknownFormat:
       type: string
+      format: not-a-real-format
+    Time:
+      type: string
+      format: time
+    Duration:
+      type: string
+      format: duration
+    Hostname:
+      type: string
       format: hostname
+    IdnHostname:
+      type: string
+      format: idn-hostname
+    IdnEmail:
+      type: string
+      format: idn-email
+    Ipv4:
+      type: string
+      format: ipv4
+    Ipv6:
+      type: string
+      format: ipv6
+    UriReference:
+      type: string
+      format: uri-reference
+    Iri:
+      type: string
+      format: iri
+    IriReference:
+      type: string
+      format: iri-reference
+    UriTemplate:
+      type: string
+      format: uri-template
+    JsonPointer:
+      type: string
+      format: json-pointer
+    RelativeJsonPointer:
+      type: string
+      format: relative-json-pointer
+    Regex:
+      type: string
+      format: regex
+    Byte:
+      type: string
+      format: byte
+    Password:
+      type: string
+      format: password
+    Binary:
+      type: string
+      format: binary
+    Int32:
+      type: integer
+      format: int32
+    Int64:
+      type: integer
+      format: int64
+    Float:
+      type: number
+      format: float
+    Double:
+      type: number
+      format: double

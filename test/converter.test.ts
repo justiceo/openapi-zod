@@ -1015,3 +1015,71 @@ components:
     }
   });
 });
+
+describe("built-in formats", () => {
+  function convertFor(format: string, type: "string" | "integer" | "number" = "string") {
+    const document = {
+      openapi: "3.1.0",
+      info: { title: "Built-in Formats", version: "1.0.0" },
+      paths: {},
+      components: { schemas: { Value: { type, format } } },
+    };
+    const result = convertOpenApiToZod(document, { outputMode: "singleFile" });
+    return { contents: result.outputs[0].contents, diagnostics: result.diagnostics };
+  }
+  function schemaFor(format: string, type: "string" | "integer" | "number" = "string") {
+    return convertFor(format, type).contents;
+  }
+
+  it.each([
+    ["time", "z.iso.time()"],
+    ["duration", "z.iso.duration()"],
+    ["hostname", "z.hostname()"],
+    ["ipv4", "z.ipv4()"],
+    ["ipv6", "z.ipv6()"],
+    ["byte", "z.base64()"],
+    ["password", "z.string()"],
+    ["binary", "z.string()"],
+  ])("maps format %s to %s", (format, expected) => {
+    const contents = schemaFor(format);
+    expect(contents).toContain(`export const ValueSchema = ${expected};`);
+  });
+
+  it.each([
+    ["idn-hostname"],
+    ["idn-email"],
+    ["uri-reference"],
+    ["iri"],
+    ["iri-reference"],
+    ["uri-template"],
+    ["json-pointer"],
+    ["relative-json-pointer"],
+  ])("emits a tagged z.stringFormat for %s without an unsupported.format diagnostic", (format) => {
+    const { contents, diagnostics } = convertFor(format);
+    expect(contents).toContain(`z.stringFormat("${format}", `);
+    expect(diagnostics).not.toContainEqual(expect.objectContaining({ code: "unsupported.format" }));
+  });
+
+  it("validates that a regex format string is a syntactically valid regular expression", () => {
+    const contents = schemaFor("regex");
+    expect(contents).toContain(
+      'z.string().refine((value) => { try { new RegExp(value); return true; } catch { return false; } }, "Invalid regular expression")',
+    );
+  });
+
+  it("keeps int64 mapped to z.int() rather than a bigint-based validator", () => {
+    const contents = schemaFor("int64", "integer");
+    expect(contents).toContain("export const ValueSchema = z.int();");
+  });
+
+  it("maps int32/float/double to zod's precise numeric validators", () => {
+    expect(schemaFor("int32", "integer")).toContain("export const ValueSchema = z.int32();");
+    expect(schemaFor("float", "number")).toContain("export const ValueSchema = z.float32();");
+    expect(schemaFor("double", "number")).toContain("export const ValueSchema = z.float64();");
+  });
+
+  it("still diagnoses a truly unknown format as unsupported.format", () => {
+    const contents = schemaFor("not-a-real-format");
+    expect(contents).toContain("export const ValueSchema = z.string();");
+  });
+});
