@@ -1,13 +1,13 @@
 import { diagnostic, type ConversionDiagnostic } from "./diagnostics.js";
 import { convertReusableComponents, metadataExpression } from "./components.js";
 import { getSchemas, isSupportedOpenApiVersion, openApiDialect, resolveOptions, type ConvertOpenApiToZodOptions, type HelperName } from "./core.js";
-import { asRecord, buildNames, escapePointer, helperCode, usedIdentifiers } from "./emit.js";
+import { asRecord, buildNames, customFormatImportLines, escapePointer, helperCode, usedIdentifiers } from "./emit.js";
 import { convertOperations } from "./operations.js";
 import { routeHelperCode } from "./route-helper.js";
 import { componentHasCycle, convertSchema, findCycleEdges } from "./schema.js";
 
 export type { ConversionDiagnostic } from "./diagnostics.js";
-export type { ConvertOpenApiToZodOptions } from "./core.js";
+export type { ConvertOpenApiToZodOptions, CustomFormat } from "./core.js";
 
 export type GeneratedOutput = {
   path: string;
@@ -42,6 +42,7 @@ export function convertOpenApiToZod(
   const documentObject = asRecord(document);
   const dialect = openApiDialect(documentObject?.openapi);
   const helpers = new Set<HelperName>();
+  const customFormatsUsed = new Set<string>();
 
   if (!documentObject || !isSupportedOpenApiVersion(documentObject.openapi)) {
     diagnostics.push({
@@ -92,6 +93,7 @@ export function convertOpenApiToZod(
       cycles,
       dialect,
       helpers,
+      customFormatsUsed,
       diagnostics,
       options: resolved,
       inProperty: false,
@@ -112,6 +114,7 @@ export function convertOpenApiToZod(
     cycles,
     dialect,
     helpers,
+    customFormatsUsed,
     diagnostics,
     options: resolved,
   });
@@ -124,6 +127,7 @@ export function convertOpenApiToZod(
     cycles,
     dialect,
     helpers,
+    customFormatsUsed,
     diagnostics,
     options: resolved,
     reusableNames: reusable,
@@ -143,6 +147,9 @@ export function convertOpenApiToZod(
       lines.splice(helperInsertIndex + 1, 0, ...helperCode(helpers));
     }
 
+    const customFormatLines = customFormatImportLines(resolved.customFormats, customFormatsUsed, lines.join("\n"));
+    if (customFormatLines.length > 0) lines.splice(1, 0, ...customFormatLines);
+
     return {
       outputs: [
         {
@@ -157,6 +164,8 @@ export function convertOpenApiToZod(
   const schemaOutputLines = ['import * as z from "zod";'];
   if (helpers.size > 0) schemaOutputLines.push(...helperCode(helpers, true));
   schemaOutputLines.push(...schemaLines);
+  const schemaCustomFormatLines = customFormatImportLines(resolved.customFormats, customFormatsUsed, schemaLines.join("\n"));
+  if (schemaCustomFormatLines.length > 0) schemaOutputLines.splice(1, 0, ...schemaCustomFormatLines);
 
   const schemaExportNames = [
     ...names.schemaNames.values(),
@@ -172,6 +181,8 @@ export function convertOpenApiToZod(
   if (operationsImports.length > 0) {
     operationsOutputLines.push(`import { ${operationsImports.join(", ")} } from "./schema.js";`);
   }
+  const operationsCustomFormatLines = customFormatImportLines(resolved.customFormats, customFormatsUsed, operationsText);
+  operationsOutputLines.push(...operationsCustomFormatLines);
   operationsOutputLines.push(...operations.lines);
 
   const outputs: GeneratedOutput[] = [

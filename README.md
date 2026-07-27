@@ -156,6 +156,51 @@ Exact output depends on the OpenAPI document and selected options. Component nam
 | `mediaTypes` | `["application/json"]` |
 | `includeDeprecated` | `true` |
 | `onUnsupported` | `"warn"` |
+| `customFormats` | `{}` — registers `format` names against a `{ module, import }` pair; see [Custom string formats](#custom-string-formats). |
+
+## Custom string formats
+
+`format` values outside the built-in list (`email`, `uuid`, `uri`/`url`, `date-time`, `date`) are diagnosed as `unsupported.format` and fall back to `z.string()`. Register a format name against a function you own to have the generator emit a call to it instead:
+
+```ts
+convertOpenApiToZod(document, {
+  customFormats: {
+    "phone-number": { module: "../../utils/phone.js", import: "phoneNumberFormat" },
+  },
+});
+```
+
+```
+--custom-format phone-number=../../utils/phone.js#phoneNumberFormat
+```
+
+`module` is emitted verbatim as an import specifier — it is not resolved, loaded, or type-checked by this package. In the spec:
+
+```yaml
+phone:
+  type: string
+  format: phone-number
+  x-trim: true
+```
+
+produces:
+
+```ts
+z.string().trim().transform((value, ctx) => phoneNumberFormat(value, ctx))
+```
+
+The registered function owns validation and normalization: `(value: string, ctx: z.core.$RefinementCtx) => string`. On invalid input, call `ctx.addIssue(...)` (the return value is only used on the success path); on valid input, return the normalized value. A generic `x-format-options` vendor extension passes a per-field, JSON-safe object as a third argument:
+
+```yaml
+domainName:
+  type: string
+  format: domain-name
+  x-format-options: { rejectSubdomains: true }
+```
+
+```ts
+z.string().transform((value, ctx) => domainNameFormat(value, ctx, { "rejectSubdomains": true }))
+```
 
 ## Support Matrix
 
@@ -195,6 +240,7 @@ JSON Schema and OpenAPI schema keywords:
 | `enum`, `const` | exact | Literal-safe values are emitted deterministically. |
 | `default` | exact/warning | Defaults are emitted when literal-safe and compatible enough to trust. |
 | `format` for common strings | exact/unsupported | Known formats use Zod helpers; unknown formats are diagnosed. |
+| `format` registered via `customFormats` | helper-backed | Emits a call to a consumer-supplied function; consumer owns validation/normalization and any runtime dependency. |
 | String, number, array, and object bounds | exact | Uses native Zod checks where available. |
 | `allOf`, `anyOf`, `oneOf` | exact/helper-backed | Uses intersections, unions, object merging, or exact-one helper depending on shape. |
 | Recursive schemas | exact | Uses cycle handling where needed. |

@@ -25,6 +25,7 @@ type CliOptions = {
   excludeDeprecated: boolean;
   includeDefaultValues: boolean;
   failOnWarning: boolean;
+  customFormats: Record<string, { module: string; import: string }>;
 };
 
 type ParsedCli = CliOptions | { action: "help" } | { action: "version" };
@@ -53,6 +54,7 @@ Options:
   --media-type <value>        Include an additional request/response media type. Repeatable.
   --exclude-deprecated        Skip deprecated operations and reusable components where possible.
   --include-default-values    Emit generated default values in operation metadata.
+  --custom-format <value>     Register a string format: name=module#import. Repeatable.
   --fail-on-warning           Exit non-zero when warnings are emitted.
   --help, -h                  Print this help text.
   --version, -v               Print the package version.
@@ -94,6 +96,7 @@ function parseArgs(argv: string[]): ParsedCli {
     excludeDeprecated: false,
     includeDefaultValues: false,
     failOnWarning: false,
+    customFormats: {},
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -159,6 +162,20 @@ function parseArgs(argv: string[]): ParsedCli {
       case "--include-default-values":
         options.includeDefaultValues = true;
         break;
+      case "--custom-format": {
+        const raw = requireValue(arg, value);
+        index += 1;
+        const equals = raw.indexOf("=");
+        const hash = equals === -1 ? -1 : raw.indexOf("#", equals + 1);
+        if (equals === -1 || hash === -1) {
+          throw new Error(`--custom-format must be name=module#import, got: ${raw}`);
+        }
+        options.customFormats[raw.slice(0, equals)] = {
+          module: raw.slice(equals + 1, hash),
+          import: raw.slice(hash + 1),
+        };
+        break;
+      }
       case "--fail-on-warning":
         options.failOnWarning = true;
         break;
@@ -204,6 +221,7 @@ async function main(): Promise<void> {
     mediaTypes: cliOptions.mediaTypes.length > 0 ? cliOptions.mediaTypes : undefined,
     includeDeprecated: !cliOptions.excludeDeprecated,
     includeDefaultValues: cliOptions.includeDefaultValues,
+    customFormats: Object.keys(cliOptions.customFormats).length > 0 ? cliOptions.customFormats : undefined,
   });
 
   await mkdir(cliOptions.output!, { recursive: true });

@@ -1,5 +1,5 @@
 import type { ConversionDiagnostic } from "./diagnostics.js";
-import type { HelperName, NameMaps, ResolvedOptions } from "./core.js";
+import type { CustomFormat, HelperName, NameMaps, ResolvedOptions } from "./core.js";
 
 const reservedWords = new Set([
   "break",
@@ -149,6 +149,25 @@ export function helperCode(helpers: Set<HelperName>, exported = false): string[]
     );
   }
   return lines;
+}
+
+export function customFormatImportLines(
+  customFormats: Record<string, CustomFormat>,
+  usedFormats: Set<string>,
+  text: string,
+): string[] {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+  for (const name of Array.from(usedFormats).sort()) {
+    const customFormat = customFormats[name];
+    if (!customFormat) continue;
+    const key = `${customFormat.module}#${customFormat.import}`;
+    if (seen.has(key)) continue;
+    if (!new RegExp(`\\b${customFormat.import}\\b`).test(text)) continue;
+    seen.add(key);
+    lines.push(`import { ${customFormat.import} } from ${JSON.stringify(customFormat.module)};`);
+  }
+  return lines.sort();
 }
 
 export function zodObjectExpression(properties: Record<string, string>): string {

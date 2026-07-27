@@ -29,13 +29,13 @@ export function convertSchema(schema: unknown, context: ConvertContext): string 
   }
 
   if (Array.isArray(object.oneOf)) {
-    return convertUnion(object.oneOf, context, "oneOf");
+    return applyDefault(convertUnion(object.oneOf, context, "oneOf"), object, context);
   }
   if (Array.isArray(object.anyOf)) {
-    return convertUnion(object.anyOf, context, "anyOf");
+    return applyDefault(convertUnion(object.anyOf, context, "anyOf"), object, context);
   }
   if (Array.isArray(object.allOf)) {
-    return convertAllOf(object.allOf, context);
+    return applyDefault(convertAllOf(object.allOf, context), object, context);
   }
 
   if (Object.prototype.hasOwnProperty.call(object, "const")) {
@@ -132,13 +132,38 @@ function convertTypedSchema(
   }
 }
 
+// Reads the `x-error-message` vendor extension: either a single string (applied to
+// minLength, the overwhelmingly common "field is required" case) or an object keyed
+// by constraint keyword (minLength/maxLength/pattern) for finer control. Not a
+// standard JSON Schema keyword -- openapi-zod has no other way to carry a custom
+// zod validation message through codegen, since bare .min()/.max()/.regex() calls
+// only ever emit generic zod messages.
+function errorMessageFor(schema: Record<string, unknown>, keyword: string): string | undefined {
+  const raw = schema["x-error-message"];
+  if (typeof raw === "string") {
+    return keyword === "minLength" || keyword === "minItems" || keyword === "format" ? raw : undefined;
+  }
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    const value = (raw as Record<string, unknown>)[keyword];
+    return typeof value === "string" ? value : undefined;
+  }
+  return undefined;
+}
+
 function convertString(schema: Record<string, unknown>, context: ConvertContext): string {
   let expression = "z.string()";
-  if (typeof schema.format === "string") {
+  const customFormat = typeof schema.format === "string" ? context.options.customFormats[schema.format] : undefined;
+
+  if (typeof schema.format === "string" && !customFormat) {
     switch (schema.format) {
-      case "email":
-        expression = "z.email()";
+      case "email": {
+        const message = errorMessageFor(schema, "format");
+        const trim = schema["x-trim"] === true ? ".trim()" : "";
+        expression = trim || message
+          ? `z.string()${trim}.email(${message ? JSON.stringify(message) : ""})`
+          : "z.email()";
         break;
+      }
       case "uuid":
         expression = "z.uuid()";
         break;
@@ -162,13 +187,48 @@ function convertString(schema: Record<string, unknown>, context: ConvertContext)
     }
   }
 
-  if (isFiniteNumber(schema.minLength)) expression += `.min(${schema.minLength})`;
-  if (isFiniteNumber(schema.maxLength)) expression += `.max(${schema.maxLength})`;
+  if ((schema.format === undefined || customFormat) && schema["x-trim"] === true) {
+    expression += ".trim()";
+  }
+
+  if (isFiniteNumber(schema.minLength)) {
+    const message = errorMessageFor(schema, "minLength");
+    expression += message ? `.min(${schema.minLength}, ${JSON.stringify(message)})` : `.min(${schema.minLength})`;
+  }
+  if (isFiniteNumber(schema.maxLength)) {
+    const message = errorMessageFor(schema, "maxLength");
+    expression += message ? `.max(${schema.maxLength}, ${JSON.stringify(message)})` : `.max(${schema.maxLength})`;
+  }
   if (typeof schema.pattern === "string") {
     const regexp = regexpExpression(schema.pattern, context, `${context.path}/pattern`);
-    if (regexp) expression += `.regex(${regexp})`;
+    if (regexp) {
+      const message = errorMessageFor(schema, "pattern");
+      expression += message ? `.regex(${regexp}, ${JSON.stringify(message)})` : `.regex(${regexp})`;
+    }
   }
+
+  if (customFormat) {
+    context.customFormatsUsed.add(schema.format as string);
+    const optionsArg = formatOptionsArgument(schema, context);
+    expression += `.transform((value, ctx) => ${customFormat.import}(value, ctx${optionsArg}))`;
+  }
+
   return expression;
+}
+
+function formatOptionsArgument(schema: Record<string, unknown>, context: ConvertContext): string {
+  if (schema["x-format-options"] === undefined) return "";
+  const object = asRecord(schema["x-format-options"]);
+  if (!object) {
+    addDiagnostic(context, "invalid.schema", "x-format-options must be a plain object.", `${context.path}/x-format-options`);
+    return "";
+  }
+  const literal = jsonLiteral(object);
+  if (literal === undefined) {
+    addDiagnostic(context, "invalid.schema", "x-format-options cannot be emitted safely.", `${context.path}/x-format-options`);
+    return "";
+  }
+  return `, ${literal}`;
 }
 
 function convertNumber(
@@ -249,8 +309,14 @@ function applyArrayConstraints(
   schema: Record<string, unknown>,
   context: ConvertContext,
 ): string {
-  if (isFiniteNumber(schema.minItems)) expression += `.min(${schema.minItems})`;
-  if (isFiniteNumber(schema.maxItems)) expression += `.max(${schema.maxItems})`;
+  if (isFiniteNumber(schema.minItems)) {
+    const message = errorMessageFor(schema, "minItems");
+    expression += message ? `.min(${schema.minItems}, ${JSON.stringify(message)})` : `.min(${schema.minItems})`;
+  }
+  if (isFiniteNumber(schema.maxItems)) {
+    const message = errorMessageFor(schema, "maxItems");
+    expression += message ? `.max(${schema.maxItems}, ${JSON.stringify(message)})` : `.max(${schema.maxItems})`;
+  }
   if (schema.uniqueItems === true) {
     context.helpers.add("uniqueItems");
     expression += ".superRefine((items, ctx) => __openapiZodUniqueItems(items, ctx))";
@@ -263,6 +329,18 @@ function applyArrayConstraints(
     expression += `.superRefine((items, ctx) => __openapiZodContains(items, ctx, ${containsSchema}, ${min}, ${max === undefined ? "undefined" : max}))`;
   }
   return expression;
+}
+
+function schemaHasDefault(schema: unknown, context: ConvertContext): boolean {
+  const object = asRecord(schema);
+  if (!object) return false;
+  if (object.default !== undefined) return true;
+  if (typeof object.$ref === "string" && object.$ref.startsWith("#/components/schemas/")) {
+    const target = unescapePointer(object.$ref.slice("#/components/schemas/".length));
+    const targetSchema = context.schemas[target];
+    return isSchemaObject(targetSchema) && (targetSchema as Record<string, unknown>).default !== undefined;
+  }
+  return false;
 }
 
 function convertObject(schema: Record<string, unknown>, context: ConvertContext): string {
@@ -298,12 +376,19 @@ function convertObject(schema: Record<string, unknown>, context: ConvertContext)
       : "z.object";
   const lines = [`${base}({`];
   for (const propertyName of propertyNames) {
-    let propertyExpression = convertSchema(properties![propertyName], {
+    const propertySchema = properties![propertyName];
+    let propertyExpression = convertSchema(propertySchema, {
       ...context,
       path: `${context.path}/properties/${escapePointer(propertyName)}`,
       inProperty: true,
     });
-    if (!required.has(propertyName)) propertyExpression += ".optional()";
+    // A property with a `default` already infers a non-optional output type via
+    // z.default() (the default fills in missing/undefined input); appending
+    // .optional() on top would widen that inferred type back to `T | undefined`,
+    // even though the value is always present after parsing. Only add .optional()
+    // when there's no default to fall back on -- resolving one level of $ref, since
+    // a $ref'd component's own `default` (not a sibling on the $ref pointer) counts too.
+    if (!required.has(propertyName) && !schemaHasDefault(propertySchema, context)) propertyExpression += ".optional()";
     lines.push(`  ${propertyKey(propertyName)}: ${propertyExpression},`);
   }
   lines.push("})");

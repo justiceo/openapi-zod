@@ -18,7 +18,10 @@ export type ConvertOpenApiToZodOptions = {
   includeDeprecated?: boolean;
   includeDefaultValues?: boolean;
   onUnsupported?: "warn" | "error";
+  customFormats?: Record<string, CustomFormat>;
 };
+
+export type CustomFormat = { module: string; import: string };
 
 export type ResolvedOptions = Required<ConvertOpenApiToZodOptions>;
 export type SchemaMap = Record<string, unknown>;
@@ -57,6 +60,7 @@ export type ConvertContext = {
   cycles: Set<string>;
   dialect: SchemaDialect;
   helpers: Set<HelperName>;
+  customFormatsUsed: Set<string>;
   diagnostics: ConversionDiagnostic[];
   options: ResolvedOptions;
   inProperty: boolean;
@@ -80,6 +84,7 @@ export function resolveOptions(options: ConvertOpenApiToZodOptions): ResolvedOpt
     includeDeprecated: options.includeDeprecated ?? true,
     includeDefaultValues: options.includeDefaultValues ?? false,
     onUnsupported: options.onUnsupported ?? "warn",
+    customFormats: options.customFormats ?? {},
   };
 }
 
@@ -96,6 +101,7 @@ export type SharedContext = {
   cycles: Set<string>;
   dialect: SchemaDialect;
   helpers: Set<HelperName>;
+  customFormatsUsed: Set<string>;
   diagnostics: ConversionDiagnostic[];
   options: ResolvedOptions;
   reusableNames?: ReusableNames;

@@ -198,8 +198,65 @@ describe("fixture conversion", () => {
 
     expect(result.stdout).toContain("Usage: openapi-zod --input <path> --output <dir>");
     expect(result.stdout).toContain("--include-default-values");
+    expect(result.stdout).toContain("--custom-format <value>");
     expect(result.stdout).toContain("--fail-on-warning");
     expect(result.stderr).toBe("");
+  });
+
+  it("registers a custom format from the CLI flag", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
+
+    try {
+      const inputFile = join(dir, "openapi.yaml");
+      await writeFile(
+        inputFile,
+        `
+openapi: 3.1.0
+info:
+  title: Custom Format CLI
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Severity:
+      type: string
+      format: custom-severity
+`,
+        "utf8",
+      );
+      await execFileAsync("npx", [
+        "tsx",
+        "src/cli.ts",
+        "--input",
+        inputFile,
+        "--output",
+        dir,
+        "--single-file",
+        "--custom-format",
+        "custom-severity=./severity.js#severityFormat",
+      ]);
+      const contents = await readFile(join(dir, "schemas.ts"), "utf8");
+      expect(contents).toContain('import { severityFormat } from "./severity.js";');
+      expect(contents).toContain("z.string().transform((value, ctx) => severityFormat(value, ctx))");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a malformed --custom-format value", async () => {
+    await expect(execFileAsync("npx", [
+      "tsx",
+      "src/cli.ts",
+      "--input",
+      join("test", "fixtures", "empty", "openapi.yaml"),
+      "--output",
+      "generated",
+      "--custom-format",
+      "not-valid",
+    ])).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining("--custom-format must be name=module#import"),
+    });
   });
 
   it("prints CLI version", async () => {
@@ -622,6 +679,337 @@ describe("fixture conversion", () => {
       `, "utf8");
 
       await execFileAsync("npx", ["tsx", runnerFile]);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("custom formats", () => {
+  const document = {
+    openapi: "3.1.0",
+    info: { title: "Custom Formats", version: "1.0.0" },
+    paths: {},
+    components: {
+      schemas: {
+        Contact: {
+          type: "object",
+          required: ["phone"],
+          properties: {
+            phone: { type: "string", format: "phone-number", "x-trim": true },
+          },
+        },
+        DomainConfig: {
+          type: "object",
+          required: ["domain", "altDomain"],
+          properties: {
+            domain: {
+              type: "string",
+              format: "domain-name",
+              "x-format-options": { rejectSubdomains: true },
+            },
+            altDomain: { type: "string", format: "domain-name" },
+          },
+        },
+        Legacy: {
+          type: "string",
+          format: "not-registered",
+        },
+      },
+    },
+  };
+
+  const customFormats = {
+    "phone-number": { module: "../../utils/phone.js", import: "phoneNumberFormat" },
+    "domain-name": { module: "../../utils/domain.js", import: "domainNameFormat" },
+  };
+
+  it("applies a registered custom format with no options", () => {
+    const result = convertOpenApiToZod(document, { outputMode: "singleFile", customFormats });
+    const contents = result.outputs[0].contents;
+
+    expect(contents).toContain('import { phoneNumberFormat } from "../../utils/phone.js";');
+    expect(contents).toContain(
+      'z.string().trim().transform((value, ctx) => phoneNumberFormat(value, ctx))',
+    );
+    expect(result.diagnostics).not.toContainEqual(
+      expect.objectContaining({ path: "#/components/schemas/Contact/properties/phone/format" }),
+    );
+  });
+
+  it("emits x-format-options as a literal third argument", () => {
+    const result = convertOpenApiToZod(document, { outputMode: "singleFile", customFormats });
+    const contents = result.outputs[0].contents;
+
+    expect(contents).toContain(
+      'z.string().transform((value, ctx) => domainNameFormat(value, ctx, { "rejectSubdomains": true }))',
+    );
+    expect(contents).toContain(
+      'z.string().transform((value, ctx) => domainNameFormat(value, ctx))',
+    );
+  });
+
+  it("deduplicates the import for a custom format used by multiple fields", () => {
+    const result = convertOpenApiToZod(document, { outputMode: "singleFile", customFormats });
+    const contents = result.outputs[0].contents;
+    const occurrences = contents.split('import { domainNameFormat } from "../../utils/domain.js";').length - 1;
+
+    expect(occurrences).toBe(1);
+  });
+
+  it("emits the custom format import into api/schema.ts in multi-file mode", () => {
+    const result = convertOpenApiToZod(document, { customFormats });
+    const schema = result.outputs.find((output) => output.path === "api/schema.ts")!;
+
+    expect(schema.contents).toContain('import { phoneNumberFormat } from "../../utils/phone.js";');
+    expect(schema.contents).toContain('import { domainNameFormat } from "../../utils/domain.js";');
+  });
+
+  it("still diagnoses an unregistered format as unsupported.format", () => {
+    const result = convertOpenApiToZod(document, { outputMode: "singleFile", customFormats });
+
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "unsupported.format", path: "#/components/schemas/Legacy/format" }),
+    );
+    expect(result.outputs[0].contents).toContain("export const LegacySchema = z.string();");
+  });
+
+  it("falls back to unsupported.format when customFormats is not provided", () => {
+    const result = convertOpenApiToZod(document, { outputMode: "singleFile" });
+
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "unsupported.format", path: "#/components/schemas/Contact/properties/phone/format" }),
+    );
+  });
+
+  it("runtime-validates a registered custom format end to end", async () => {
+    const result = convertOpenApiToZod(
+      { ...document, components: { schemas: { Contact: document.components.schemas.Contact } } },
+      { outputMode: "singleFile", outputFileName: "contact.ts", customFormats: { "phone-number": { module: "./utils/phone.js", import: "phoneNumberFormat" } } },
+    );
+    const dir = await mkdtemp(join(process.cwd(), ".generated-"));
+    const utilsDir = join(dir, "utils");
+
+    try {
+      await mkdir(utilsDir, { recursive: true });
+      await writeFile(
+        join(utilsDir, "phone.ts"),
+        `
+        import type * as z from "zod";
+        export function phoneNumberFormat(value: string, ctx: z.core.$RefinementCtx): string {
+          if (!/^\\+1\\d{10}$/.test(value)) {
+            ctx.addIssue({ code: "custom", message: "Invalid phone number." });
+            return value;
+          }
+          return value;
+        }
+        `,
+        "utf8",
+      );
+      await writeFile(join(dir, "contact.ts"), result.outputs[0].contents, "utf8");
+      await writeFile(
+        join(dir, "run.ts"),
+        `
+        import { ContactSchema } from "./contact.js";
+
+        if (!ContactSchema.safeParse({ phone: "+15551234567" }).success) {
+          throw new Error("valid phone number should parse");
+        }
+        if (ContactSchema.safeParse({ phone: "not-a-phone" }).success) {
+          throw new Error("invalid phone number should not parse");
+        }
+        `,
+        "utf8",
+      );
+
+      await execFileAsync("npx", ["tsx", join(dir, "run.ts")]);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("does not emit a custom format import into a file that never references it", () => {
+    const result = convertOpenApiToZod(document, { customFormats });
+    const operations = result.outputs.find((output) => output.path === "api/operations.ts")!;
+
+    expect(operations.contents).not.toContain("phoneNumberFormat");
+    expect(operations.contents).not.toContain("domainNameFormat");
+  });
+
+  it("emits a custom format import into api/operations.ts when only used inline there, and keeps it out of api/schema.ts", () => {
+    const operationsDocument = {
+      openapi: "3.1.0",
+      info: { title: "Inline Custom Format", version: "1.0.0" },
+      components: { schemas: {} },
+      paths: {
+        "/tickets": {
+          post: {
+            operationId: "createTicket",
+            requestBody: {
+              required: true,
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["severity"],
+                    properties: { severity: { type: "string", format: "ticket-severity" } },
+                  },
+                },
+              },
+            },
+            responses: { "204": { description: "OK" } },
+          },
+        },
+      },
+    };
+    const ticketFormats = { "ticket-severity": { module: "../../utils/severity.js", import: "severityFormat" } };
+
+    const result = convertOpenApiToZod(operationsDocument, { customFormats: ticketFormats });
+    const schema = result.outputs.find((output) => output.path === "api/schema.ts")!;
+    const operations = result.outputs.find((output) => output.path === "api/operations.ts")!;
+
+    expect(operations.contents).toContain('import { severityFormat } from "../../utils/severity.js";');
+    expect(operations.contents).toContain("z.string().transform((value, ctx) => severityFormat(value, ctx))");
+    expect(schema.contents).not.toContain("severityFormat");
+  });
+
+  it("diagnoses x-format-options that is not a plain object and omits the argument", () => {
+    const invalidOptionsDocument = {
+      openapi: "3.1.0",
+      info: { title: "Invalid Options", version: "1.0.0" },
+      paths: {},
+      components: {
+        schemas: {
+          Bad: { type: "string", format: "domain-name", "x-format-options": "not-an-object" },
+        },
+      },
+    };
+    const result = convertOpenApiToZod(invalidOptionsDocument, { outputMode: "singleFile", customFormats });
+
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        level: "error",
+        code: "invalid.schema",
+        path: "#/components/schemas/Bad/x-format-options",
+      }),
+    );
+    expect(result.outputs[0].contents).toContain(
+      "export const BadSchema = z.string().transform((value, ctx) => domainNameFormat(value, ctx));",
+    );
+  });
+
+  it("diagnoses x-format-options that cannot be emitted safely and omits the argument", () => {
+    const unsafeOptionsDocument = {
+      openapi: "3.1.0",
+      info: { title: "Unsafe Options", version: "1.0.0" },
+      paths: {},
+      components: {
+        schemas: {
+          Bad: { type: "string", format: "domain-name", "x-format-options": { threshold: Number.POSITIVE_INFINITY } },
+        },
+      },
+    };
+    const result = convertOpenApiToZod(unsafeOptionsDocument, { outputMode: "singleFile", customFormats });
+
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        level: "error",
+        code: "invalid.schema",
+        path: "#/components/schemas/Bad/x-format-options",
+      }),
+    );
+    expect(result.outputs[0].contents).toContain(
+      "export const BadSchema = z.string().transform((value, ctx) => domainNameFormat(value, ctx));",
+    );
+  });
+
+  it("lets a custom format override a built-in format name", () => {
+    const overrideDocument = {
+      openapi: "3.1.0",
+      info: { title: "Override", version: "1.0.0" },
+      paths: {},
+      components: {
+        schemas: { Address: { type: "string", format: "email" } },
+      },
+    };
+    const result = convertOpenApiToZod(overrideDocument, {
+      outputMode: "singleFile",
+      customFormats: { email: { module: "../../utils/email.js", import: "emailFormat" } },
+    });
+
+    expect(result.outputs[0].contents).toContain(
+      "export const AddressSchema = z.string().transform((value, ctx) => emailFormat(value, ctx));",
+    );
+    expect(result.diagnostics).not.toContainEqual(expect.objectContaining({ code: "unsupported.format" }));
+  });
+
+  it("applies base string constraints before the transform call", () => {
+    const constrainedDocument = {
+      openapi: "3.1.0",
+      info: { title: "Constrained", version: "1.0.0" },
+      paths: {},
+      components: {
+        schemas: {
+          Slug: {
+            type: "string",
+            format: "slug",
+            minLength: 3,
+            maxLength: 40,
+            pattern: "^[a-z0-9-]+$",
+          },
+        },
+      },
+    };
+    const result = convertOpenApiToZod(constrainedDocument, {
+      outputMode: "singleFile",
+      customFormats: { slug: { module: "../../utils/slug.js", import: "slugFormat" } },
+    });
+
+    expect(result.outputs[0].contents).toContain(
+      'export const SlugSchema = z.string().min(3).max(40).regex(new RegExp("^[a-z0-9-]+$")).transform((value, ctx) => slugFormat(value, ctx));',
+    );
+  });
+
+  it("registers multiple custom formats from repeated CLI flags", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
+
+    try {
+      const inputFile = join(dir, "openapi.yaml");
+      await writeFile(
+        inputFile,
+        `
+openapi: 3.1.0
+info:
+  title: Multiple Custom Formats CLI
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Phone:
+      type: string
+      format: phone-number
+    Severity:
+      type: string
+      format: custom-severity
+`,
+        "utf8",
+      );
+      await execFileAsync("npx", [
+        "tsx",
+        "src/cli.ts",
+        "--input",
+        inputFile,
+        "--output",
+        dir,
+        "--single-file",
+        "--custom-format",
+        "phone-number=./phone.js#phoneFormat",
+        "--custom-format",
+        "custom-severity=./severity.js#severityFormat",
+      ]);
+      const contents = await readFile(join(dir, "schemas.ts"), "utf8");
+      expect(contents).toContain('import { phoneFormat } from "./phone.js";');
+      expect(contents).toContain('import { severityFormat } from "./severity.js";');
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

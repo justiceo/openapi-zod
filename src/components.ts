@@ -483,6 +483,7 @@ function schemaContext(shared: SharedContext, path: string): ConvertContext {
     cycles: shared.cycles,
     dialect: shared.dialect,
     helpers: shared.helpers,
+    customFormatsUsed: shared.customFormatsUsed,
     diagnostics: shared.diagnostics,
     options: shared.options,
     inProperty: false,
