@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { convertOpenApiToZod } from "./index.js";
 import { loadOpenApiDocument } from "./loader.js";
@@ -60,9 +59,9 @@ Options:
   --version, -v               Print the package version.
 `;
 
-function readPackageVersion(): string {
+async function readPackageVersion(): Promise<string> {
   const packageJsonUrl = new URL("../package.json", import.meta.url);
-  const packageJson = JSON.parse(readFileSync(packageJsonUrl, "utf8")) as {
+  const packageJson = JSON.parse(await readFile(packageJsonUrl, "utf8")) as {
     version?: unknown;
   };
   return typeof packageJson.version === "string" ? packageJson.version : "0.0.0";
@@ -200,7 +199,7 @@ async function main(): Promise<void> {
     return;
   }
   if (cliOptions.action === "version") {
-    process.stdout.write(`${readPackageVersion()}\n`);
+    process.stdout.write(`${await readPackageVersion()}\n`);
     return;
   }
 

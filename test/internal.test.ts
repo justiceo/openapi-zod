@@ -1,10 +1,14 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { ConversionDiagnostic } from "../src/diagnostics.js";
-import type { SharedContext } from "../src/core.js";
+import type { ConvertContext, SharedContext } from "../src/core.js";
 import { buildNames, escapePointer, jsonLiteral, propertyKey, sanitizeIdentifier, unescapePointer } from "../src/emit.js";
-import { convertResponse } from "../src/components.js";
+import { convertParameter, convertResponse } from "../src/components.js";
 import { convertOperations } from "../src/operations.js";
-import { componentHasCycle, findCycleEdges } from "../src/schema.js";
+import { componentHasCycle, convertSchema, findCycleEdges } from "../src/schema.js";
+import { loadOpenApiDocument } from "../src/loader.js";
 
 function shared(diagnostics: ConversionDiagnostic[] = []): SharedContext & { securityNames: Map<string, string> } {
   return {
@@ -65,6 +69,31 @@ describe("internal emit helpers", () => {
   });
 });
 
+function schemaConvertContext(diagnostics: ConversionDiagnostic[] = []): ConvertContext {
+  const s = shared(diagnostics);
+  return {
+    path: "#/components/schemas/Root",
+    schemas: {},
+    names: s.names,
+    cycles: s.cycles,
+    dialect: s.dialect,
+    helpers: s.helpers,
+    customFormatsUsed: new Set(),
+    diagnostics: s.diagnostics,
+    options: s.options,
+    inProperty: false,
+    depth: { current: 0 },
+  };
+}
+
+function deeplyNestedSchema(depth: number): unknown {
+  let schema: Record<string, unknown> = { type: "string" };
+  for (let index = 0; index < depth; index += 1) {
+    schema = { type: "array", items: schema };
+  }
+  return schema;
+}
+
 describe("internal schema helpers", () => {
   it("detects cyclic component references", () => {
     const cycles = findCycleEdges({
@@ -78,6 +107,75 @@ describe("internal schema helpers", () => {
 
     expect(cycles.has("Node->Node")).toBe(true);
     expect(componentHasCycle("Node", cycles)).toBe(true);
+  });
+
+  it("detects every edge in a multi-node reference cycle", () => {
+    const cycles = findCycleEdges({
+      A: { type: "object", properties: { b: { $ref: "#/components/schemas/B" } } },
+      B: { type: "object", properties: { c: { $ref: "#/components/schemas/C" } } },
+      C: { type: "object", properties: { a: { $ref: "#/components/schemas/A" } } },
+    });
+
+    expect(cycles.has("A->B")).toBe(true);
+    expect(cycles.has("B->C")).toBe(true);
+    expect(cycles.has("C->A")).toBe(true);
+  });
+
+  it("does not flag acyclic references as cycles", () => {
+    const cycles = findCycleEdges({
+      A: { type: "object", properties: { b: { $ref: "#/components/schemas/B" } } },
+      B: { type: "object", properties: { value: { type: "string" } } },
+    });
+
+    expect(cycles.size).toBe(0);
+  });
+
+  it("emits a diagnostic instead of crashing on pathologically deep schemas", () => {
+    const diagnostics: ConversionDiagnostic[] = [];
+    const context = schemaConvertContext(diagnostics);
+
+    // The guard trips at the deepest nesting level and degrades that branch to
+    // z.unknown() rather than growing the call stack further; the point is that it
+    // returns at all (no stack overflow) and reports a diagnostic.
+    const expression = convertSchema(deeplyNestedSchema(1000), context);
+
+    expect(expression.startsWith("z.array(")).toBe(true);
+    expect(expression.includes("z.unknown()")).toBe(true);
+    expect(diagnostics).toContainEqual(expect.objectContaining({ code: "invalid.schema" }));
+  });
+
+  it("does not trip the depth guard for reasonably nested schemas", () => {
+    const diagnostics: ConversionDiagnostic[] = [];
+    const context = schemaConvertContext(diagnostics);
+
+    const expression = convertSchema(deeplyNestedSchema(20), context);
+
+    expect(expression.startsWith("z.array(")).toBe(true);
+    expect(diagnostics.some((item) => item.code === "invalid.schema")).toBe(false);
+  });
+});
+
+describe("loader error handling", () => {
+  it("wraps malformed JSON parse errors with the file path", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
+    const file = join(dir, "spec.json");
+    try {
+      await writeFile(file, "{ not valid json", "utf8");
+      await expect(loadOpenApiDocument(file)).rejects.toThrow(/spec\.json/);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("wraps malformed YAML parse errors with the file path", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
+    const file = join(dir, "spec.yaml");
+    try {
+      await writeFile(file, "key: [unterminated", "utf8");
+      await expect(loadOpenApiDocument(file)).rejects.toThrow(/spec\.yaml/);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });
 
@@ -101,6 +199,36 @@ describe("internal OpenAPI conversion helpers", () => {
     expect(diagnostics).toContainEqual(expect.objectContaining({
       code: "ambiguous.operationId",
       path: "#/paths/~1users~1{id}/get",
+    }));
+  });
+
+  it("reports a missing reusable parameter reference target", () => {
+    const diagnostics: ConversionDiagnostic[] = [];
+    const result = convertParameter(
+      { $ref: "#/components/parameters/Missing" },
+      "#/paths/~1users/get/parameters/0",
+      shared(diagnostics),
+    );
+
+    expect(result.schema).toBe("z.unknown().optional()");
+    expect(diagnostics).toContainEqual(expect.objectContaining({
+      code: "invalid.ref",
+      path: "#/paths/~1users/get/parameters/0/$ref",
+    }));
+  });
+
+  it("reports an external reference on a reusable parameter as unsupported", () => {
+    const diagnostics: ConversionDiagnostic[] = [];
+    const result = convertParameter(
+      { $ref: "external.yaml#/components/parameters/Limit" },
+      "#/paths/~1users/get/parameters/0",
+      shared(diagnostics),
+    );
+
+    expect(result.schema).toBe("z.unknown().optional()");
+    expect(diagnostics).toContainEqual(expect.objectContaining({
+      code: "unsupported.externalRef",
+      path: "#/paths/~1users/get/parameters/0/$ref",
     }));
   });
 

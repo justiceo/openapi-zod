@@ -1,8 +1,26 @@
 import { diagnostic } from "./diagnostics.js";
-import type { ConvertContext, SchemaMap } from "./core.js";
+import { MAX_SCHEMA_DEPTH, type ConvertContext, type SchemaMap } from "./core.js";
 import { asRecord, escapePointer, isFiniteNumber, isSchemaObject, jsonLiteral, literalObjectExpression, propertyKey, stableJson, unescapePointer } from "./emit.js";
 
 export function convertSchema(schema: unknown, context: ConvertContext): string {
+  if (context.depth.current >= MAX_SCHEMA_DEPTH) {
+    addDiagnostic(
+      context,
+      "invalid.schema",
+      `Schema nesting exceeds the maximum supported depth (${MAX_SCHEMA_DEPTH}); likely a circular or pathological schema.`,
+      context.path,
+    );
+    return "z.unknown()";
+  }
+  context.depth.current += 1;
+  try {
+    return convertSchemaInner(schema, context);
+  } finally {
+    context.depth.current -= 1;
+  }
+}
+
+function convertSchemaInner(schema: unknown, context: ConvertContext): string {
   const object = asRecord(schema);
   if (!object) {
     addInvalidSchema(context, "Schema must be an object.");
@@ -714,16 +732,31 @@ function convertRef(ref: string, schema: Record<string, unknown>, context: Conve
   return expression;
 }
 
+// An edge from->to is part of a cycle exactly when `from` and `to` sit in the same
+// strongly connected component (a self-loop counts, or any SCC with more than one
+// member). Tarjan's SCC algorithm finds this in a single O(V+E) pass instead of the
+// O(V*E) reachability check (hasPath per edge) this replaced.
 export function findCycleEdges(schemas: SchemaMap): Set<string> {
   const graph = new Map<string, Set<string>>();
   for (const [name, schema] of Object.entries(schemas)) {
     graph.set(name, collectRefs(schema));
   }
 
+  const sccId = computeStronglyConnectedComponents(graph);
+  const sccSize = new Map<number, number>();
+  for (const id of sccId.values()) {
+    sccSize.set(id, (sccSize.get(id) ?? 0) + 1);
+  }
+
   const cycleEdges = new Set<string>();
   for (const [from, targets] of graph.entries()) {
+    const fromScc = sccId.get(from);
+    if (fromScc === undefined) continue;
     for (const to of targets) {
-      if (hasPath(graph, to, from, new Set())) cycleEdges.add(`${from}->${to}`);
+      const toScc = sccId.get(to);
+      if (toScc === fromScc && (from === to || (sccSize.get(fromScc) ?? 0) > 1)) {
+        cycleEdges.add(`${from}->${to}`);
+      }
     }
   }
   return cycleEdges;
@@ -736,36 +769,86 @@ export function componentHasCycle(componentName: string, cycles: Set<string>): b
   return false;
 }
 
+// Iterative (explicit-stack) $ref walk: schema documents are untrusted input and a
+// recursive visitor here could stack-overflow on deeply nested (not necessarily
+// circular) schemas.
 function collectRefs(schema: unknown): Set<string> {
   const refs = new Set<string>();
-  const visit = (value: unknown): void => {
-    const object = asRecord(value);
-    if (!object) return;
+  const stack: unknown[] = [schema];
+  while (stack.length > 0) {
+    const object = asRecord(stack.pop());
+    if (!object) continue;
     if (typeof object.$ref === "string" && object.$ref.startsWith("#/components/schemas/")) {
       refs.add(unescapePointer(object.$ref.slice("#/components/schemas/".length)));
     }
     for (const child of Object.values(object)) {
-      if (Array.isArray(child)) child.forEach(visit);
-      else visit(child);
+      if (Array.isArray(child)) stack.push(...child);
+      else stack.push(child);
     }
-  };
-  visit(schema);
+  }
   return refs;
 }
 
-function hasPath(
-  graph: Map<string, Set<string>>,
-  from: string,
-  to: string,
-  seen: Set<string>,
-): boolean {
-  if (from === to) return true;
-  if (seen.has(from)) return false;
-  seen.add(from);
-  for (const next of graph.get(from) ?? []) {
-    if (hasPath(graph, next, to, seen)) return true;
+// Iterative (explicit-stack) Tarjan's SCC algorithm, so a very large or deeply chained
+// $ref graph can't overflow the call stack the way a recursive Tarjan's would.
+function computeStronglyConnectedComponents(graph: Map<string, Set<string>>): Map<string, number> {
+  const index = new Map<string, number>();
+  const lowlink = new Map<string, number>();
+  const onStack = new Set<string>();
+  const stack: string[] = [];
+  const sccId = new Map<string, number>();
+  let nextIndex = 0;
+  let nextSccId = 0;
+
+  for (const start of graph.keys()) {
+    if (index.has(start)) continue;
+
+    const work: { node: string; iterator: Iterator<string> }[] = [
+      { node: start, iterator: (graph.get(start) ?? new Set<string>()).values() },
+    ];
+    index.set(start, nextIndex);
+    lowlink.set(start, nextIndex);
+    nextIndex += 1;
+    stack.push(start);
+    onStack.add(start);
+
+    while (work.length > 0) {
+      const frame = work[work.length - 1]!;
+      const next = frame.iterator.next();
+      if (!next.done) {
+        const child = next.value;
+        if (!index.has(child)) {
+          index.set(child, nextIndex);
+          lowlink.set(child, nextIndex);
+          nextIndex += 1;
+          stack.push(child);
+          onStack.add(child);
+          work.push({ node: child, iterator: (graph.get(child) ?? new Set<string>()).values() });
+        } else if (onStack.has(child)) {
+          lowlink.set(frame.node, Math.min(lowlink.get(frame.node)!, index.get(child)!));
+        }
+        continue;
+      }
+
+      work.pop();
+      if (work.length > 0) {
+        const parent = work[work.length - 1]!;
+        lowlink.set(parent.node, Math.min(lowlink.get(parent.node)!, lowlink.get(frame.node)!));
+      }
+
+      if (lowlink.get(frame.node) === index.get(frame.node)) {
+        for (;;) {
+          const member = stack.pop()!;
+          onStack.delete(member);
+          sccId.set(member, nextSccId);
+          if (member === frame.node) break;
+        }
+        nextSccId += 1;
+      }
+    }
   }
-  return false;
+
+  return sccId;
 }
 
 function applyDefault(

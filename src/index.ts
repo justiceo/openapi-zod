@@ -97,6 +97,7 @@ export function convertOpenApiToZod(
       diagnostics,
       options: resolved,
       inProperty: false,
+      depth: { current: 0 },
     });
     const annotation = componentHasCycle(componentName, cycles) ? ": z.ZodTypeAny" : "";
     schemaLines.push(`export const ${schemaName}${annotation} = ${expression};`);

@@ -1,6 +1,6 @@
 {
   "name": "openapi-zod",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Convert OpenAPI 3.x documents to Zod 4 validators and route metadata.",
   "license": "MIT",
   "author": "Justice O.",
@@ -47,13 +47,16 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "yaml": "^2.8.0",
+    "yaml": "^2.8.0"
+  },
+  "peerDependencies": {
     "zod": "^4.1.12"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "tsx": "^4.20.5",
     "typescript": "^5.8.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "zod": "^4.1.12"
   }
 }

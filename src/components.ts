@@ -423,12 +423,17 @@ function contentEntries(
   return entries;
 }
 
-function resolveReusableRef(
+// Parses a `#/components/<kind>/<name>` reference, reporting (and returning undefined
+// for) anything that isn't a same-document reference into the expected collection.
+// Callers still report their own "invalid.ref" diagnostic once they know whether the
+// name actually resolves to something, since that lookup differs (a raw component
+// object vs. an already-computed export name).
+function parseReusableRef(
   value: unknown,
   kind: "parameters" | "headers" | "requestBodies" | "responses",
   path: string,
   shared: SharedContext,
-): Record<string, unknown> | undefined {
+): string | undefined {
   const object = asRecord(value);
   if (!object || typeof object.$ref !== "string") return undefined;
   const prefix = `#/components/${kind}/`;
@@ -436,7 +441,17 @@ function resolveReusableRef(
     shared.diagnostics.push(diagnostic("unsupported.externalRef", "External references are not supported.", `${path}/$ref`, shared.options));
     return undefined;
   }
-  const name = unescapePointer(object.$ref.slice(prefix.length));
+  return unescapePointer(object.$ref.slice(prefix.length));
+}
+
+function resolveReusableRef(
+  value: unknown,
+  kind: "parameters" | "headers" | "requestBodies" | "responses",
+  path: string,
+  shared: SharedContext,
+): Record<string, unknown> | undefined {
+  const name = parseReusableRef(value, kind, path, shared);
+  if (name === undefined) return undefined;
   const collection = asRecord(shared.components[kind]) ?? {};
   const target = asRecord(collection[name]);
   if (!target) {
@@ -451,14 +466,8 @@ function reusableRefName(
   path: string,
   shared: SharedContext,
 ): string | undefined {
-  const object = asRecord(value);
-  if (!object || typeof object.$ref !== "string") return undefined;
-  const prefix = `#/components/${kind}/`;
-  if (!object.$ref.startsWith(prefix)) {
-    shared.diagnostics.push(diagnostic("unsupported.externalRef", "External references are not supported.", `${path}/$ref`, shared.options));
-    return undefined;
-  }
-  const name = unescapePointer(object.$ref.slice(prefix.length));
+  const name = parseReusableRef(value, kind, path, shared);
+  if (name === undefined) return undefined;
   const names = shared.reusableNames;
   const exportName =
     kind === "parameters" ? names?.parameterNames.get(name)
@@ -487,5 +496,6 @@ function schemaContext(shared: SharedContext, path: string): ConvertContext {
     diagnostics: shared.diagnostics,
     options: shared.options,
     inProperty: false,
+    depth: { current: 0 },
   };
 }

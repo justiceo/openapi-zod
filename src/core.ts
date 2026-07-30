@@ -52,6 +52,15 @@ export function openApiDialect(value: unknown): SchemaDialect {
   return "unknown";
 }
 
+// Mutable, shared-by-reference across every recursive convertSchema call in a single
+// top-level conversion (shallow-copied ConvertContexts all point at the same object),
+// so it tracks live recursion depth rather than depth-at-branch-point.
+export type DepthTracker = { current: number };
+
+// A schema graph this deep either has a modeling problem or is adversarial input;
+// either way we'd rather emit a diagnostic than let the process stack-overflow.
+export const MAX_SCHEMA_DEPTH = 300;
+
 export type ConvertContext = {
   path: string;
   componentName?: string;
@@ -64,6 +73,7 @@ export type ConvertContext = {
   diagnostics: ConversionDiagnostic[];
   options: ResolvedOptions;
   inProperty: boolean;
+  depth: DepthTracker;
 };
 
 export function resolveOptions(options: ConvertOpenApiToZodOptions): ResolvedOptions {
