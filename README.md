@@ -1,6 +1,6 @@
 # openapi-zod
 
-Convert OpenAPI 3.0.x and 3.1.x documents into Zod 4 validators, inferred TypeScript types, operation metadata, route maps, reusable component validators, security credential validators, and document metadata.
+Convert OpenAPI 3.0.x and 3.1.x documents into Zod 4 validators, inferred TypeScript types, operation metadata, route maps, an optional typed client SDK, reusable component validators, security credential validators, and document metadata.
 
 The package exposes a pure library API and a thin CLI. The library returns generated files in memory; the CLI owns reading OpenAPI files and writing generated TypeScript.
 
@@ -45,6 +45,7 @@ Useful flags:
 --no-operation-types        Skip inferred operation request and response types.
 --no-security-validators    Skip security credential validators.
 --no-metadata               Skip document metadata export.
+--include-client            Emit a typed fetch-based client SDK (api/client.ts).
 --single-file               Emit schemas.ts instead of api/schema.ts, api/operations.ts, and api/router.ts.
 --strict-objects            Generate strict object schemas where possible.
 --media-type <value>        Include an additional request/response media type. Repeatable.
@@ -132,6 +133,32 @@ export const routes = [getUserOperation] as const;
 // getRoute() and route-matching helpers follow.
 ```
 
+Pass `includeClient: true` (or `--include-client` on the CLI) to additionally emit `api/client.ts`, a typed fetch-based client SDK built from the same operation metadata:
+
+```ts
+import * as z from "zod";
+import { getUserOperation } from "./operations.js";
+// ClientConfig, ClientResult, clientRequest, etc. follow.
+
+export async function getUser(config: ClientConfig, input?: ClientOperationInput<typeof getUserOperation.request>, options?: ClientOptions) {
+  return clientRequest(config, getUserOperation, input, options);
+}
+
+export function createClient(config: ClientConfig) {
+  return { getUser: (input?, options?) => getUser(config, input, options) };
+}
+```
+
+```ts
+import { createClient } from "./api/client.js";
+
+const client = createClient({ baseUrl: "https://api.example.com", bearerToken: "..." });
+const result = await client.getUser({ params: { id: "..." } });
+if (result.success) console.log(result.data);
+```
+
+Each generated function returns a `ClientResult<T>` (`{ success: true, status, response, data }` or `{ success: false, status, response, data, issues? }`) instead of throwing — the response body is parsed and validated against the Zod schema for the matched status (exact status, then `NXX` range, then `default`). Only `application/json` request/response bodies are specially handled in this first version; other media types still compile but aren't serialized/parsed automatically. `includeClient` defaults to `false` since this is a newer, less battle-tested surface than the rest of the generated output.
+
 Pass `outputMode: "singleFile"` (or `--single-file` on the CLI) to combine these into one `schemas.ts` file instead.
 
 Exact output depends on the OpenAPI document and selected options. Component names, reusable components, paths, and operations are sorted for deterministic generation.
@@ -149,6 +176,7 @@ Exact output depends on the OpenAPI document and selected options. Component nam
 | `operationNameSuffix` | `"Operation"` |
 | `includeInferredTypes` | `true` |
 | `includeRouteMap` | `true` |
+| `includeClient` | `false` |
 | `includeOperationTypes` | `true` |
 | `includeSecurityValidators` | `true` |
 | `includeDocumentMetadata` | `true` |
@@ -237,6 +265,7 @@ OpenAPI document surfaces:
 | Security schemes | exact/metadata-only | Credential shape validators are generated; authorization is not implemented. |
 | `info`, `servers`, `tags`, `externalDocs` | metadata-only | Emitted under document metadata when enabled. |
 | Deprecated operations/components | exact | Included by default; can be skipped with `includeDeprecated: false`. |
+| Outbound client SDK (`includeClient`) | exact/metadata-only | Opt-in `api/client.ts`; only `application/json` request/response bodies are serialized/parsed automatically. |
 
 JSON Schema and OpenAPI schema keywords:
 

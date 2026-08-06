@@ -39,6 +39,12 @@ async function main() {
     const singleFile = convertOpenApiToZod(document, { outputMode: "singleFile" });
     await writeFile(join(dir, "expected.ts"), singleFile.outputs[0].contents, "utf8");
 
+    const withClient = convertOpenApiToZod(document, { includeClient: true });
+    const clientOutput = withClient.outputs.find((output) => output.path === "api/client.ts");
+    if (clientOutput) {
+      await writeFile(join(dir, "expected-client.ts"), clientOutput.contents, "utf8");
+    }
+
     await writeFile(
       join(dir, "diagnostics.json"),
       `${JSON.stringify(multiFile.diagnostics, null, 2)}\n`,

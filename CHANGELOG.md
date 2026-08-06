@@ -6,6 +6,9 @@ This project follows semantic versioning. Patch releases contain compatible bug 
 
 ## Unreleased
 
+## 0.3.0
+
+- Add an opt-in generated client SDK: `includeClient: true` (or `--include-client` on the CLI) emits `api/client.ts` (or appends to `schemas.ts` in single-file mode) with typed, per-operation fetch wrapper functions and a bound `createClient()`, built from the already-generated operation metadata. Calls return a discriminated `ClientResult<T>` instead of throwing.
 - **Breaking:** move `zod` from `dependencies` to `peerDependencies` (`^4.1.12`). The converter itself never imports `zod` — only generated output does — so consumers should already have it installed; this avoids a duplicate/mismatched `zod` copy in `node_modules`.
 - Guard schema conversion against pathologically deep or adversarial input: recursive descent now stops at a maximum nesting depth (emitting a diagnostic instead of crashing), `$ref` graph walks are iterative, and malformed YAML/JSON input files now raise a clear error naming the file.
 - Replace per-edge `$ref` cycle detection with a single-pass strongly-connected-components algorithm, reducing cycle detection from roughly O(V·E) to O(V+E) for large component graphs.

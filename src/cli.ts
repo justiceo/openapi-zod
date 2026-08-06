@@ -15,6 +15,7 @@ type CliOptions = {
   operationSuffix?: string;
   noTypes: boolean;
   noRouteMap: boolean;
+  includeClient: boolean;
   noOperationTypes: boolean;
   noSecurityValidators: boolean;
   noMetadata: boolean;
@@ -45,6 +46,7 @@ Options:
   --operation-suffix <value>  Suffix for operation exports. Default: Operation.
   --no-types                  Skip inferred schema type exports.
   --no-route-map              Skip the aggregate routes export.
+  --include-client            Emit a typed fetch-based client SDK (api/client.ts).
   --no-operation-types        Skip inferred operation request and response types.
   --no-security-validators    Skip security credential validators.
   --no-metadata               Skip document metadata export.
@@ -86,6 +88,7 @@ function parseArgs(argv: string[]): ParsedCli {
     action: "convert",
     noTypes: false,
     noRouteMap: false,
+    includeClient: false,
     noOperationTypes: false,
     noSecurityValidators: false,
     noMetadata: false,
@@ -135,6 +138,9 @@ function parseArgs(argv: string[]): ParsedCli {
         break;
       case "--no-route-map":
         options.noRouteMap = true;
+        break;
+      case "--include-client":
+        options.includeClient = true;
         break;
       case "--no-operation-types":
         options.noOperationTypes = true;
@@ -213,6 +219,7 @@ async function main(): Promise<void> {
     operationNameSuffix: cliOptions.operationSuffix,
     includeInferredTypes: !cliOptions.noTypes,
     includeRouteMap: !cliOptions.noRouteMap,
+    includeClient: cliOptions.includeClient,
     includeOperationTypes: !cliOptions.noOperationTypes,
     includeSecurityValidators: !cliOptions.noSecurityValidators,
     includeDocumentMetadata: !cliOptions.noMetadata,

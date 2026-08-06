@@ -4,6 +4,8 @@ import { getSchemas, isSupportedOpenApiVersion, openApiDialect, resolveOptions, 
 import { asRecord, buildNames, customFormatImportLines, escapePointer, helperCode, usedIdentifiers } from "./emit.js";
 import { convertOperations } from "./operations.js";
 import { routeHelperCode } from "./route-helper.js";
+import { clientHelperCode } from "./client-helper.js";
+import { convertClientFunctions } from "./client.js";
 import { componentHasCycle, convertSchema, findCycleEdges } from "./schema.js";
 
 export type { ConversionDiagnostic } from "./diagnostics.js";
@@ -144,6 +146,13 @@ export function convertOpenApiToZod(
       lines.push(...routeHelperCode());
     }
 
+    if (resolved.includeClient) {
+      const clientFunctions = convertClientFunctions(operations, { options: resolved, diagnostics });
+      lines.push("");
+      lines.push(...clientHelperCode());
+      lines.push(...clientFunctions.lines);
+    }
+
     if (helpers.size > 0) {
       lines.splice(helperInsertIndex + 1, 0, ...helperCode(helpers));
     }
@@ -200,6 +209,17 @@ export function convertOpenApiToZod(
     routerLines.push(`export const routes = [${operations.exportNames.join(", ")}] as const;`);
     routerLines.push(...routeHelperCode());
     outputs.push({ path: "api/router.ts", contents: `${generatedBanner}\n\n${routerLines.join("\n")}\n` });
+  }
+
+  if (resolved.includeClient) {
+    const clientFunctions = convertClientFunctions(operations, { options: resolved, diagnostics });
+    const clientBodyLines = [...clientHelperCode(), ...clientFunctions.lines];
+    const clientLines = ['import * as z from "zod";'];
+    if (operations.exportNames.length > 0) {
+      clientLines.push(`import { ${operations.exportNames.join(", ")} } from "./operations.js";`);
+    }
+    clientLines.push(...clientBodyLines);
+    outputs.push({ path: "api/client.ts", contents: `${generatedBanner}\n\n${clientLines.join("\n")}\n` });
   }
 
   return { outputs, diagnostics };

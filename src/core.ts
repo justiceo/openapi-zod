@@ -10,6 +10,7 @@ export type ConvertOpenApiToZodOptions = {
   operationNameSuffix?: string;
   includeInferredTypes?: boolean;
   includeRouteMap?: boolean;
+  includeClient?: boolean;
   includeOperationTypes?: boolean;
   includeSecurityValidators?: boolean;
   includeDocumentMetadata?: boolean;
@@ -86,6 +87,7 @@ export function resolveOptions(options: ConvertOpenApiToZodOptions): ResolvedOpt
     operationNameSuffix: options.operationNameSuffix ?? "Operation",
     includeInferredTypes: options.includeInferredTypes ?? true,
     includeRouteMap: options.includeRouteMap ?? true,
+    includeClient: options.includeClient ?? false,
     includeOperationTypes: options.includeOperationTypes ?? true,
     includeSecurityValidators: options.includeSecurityValidators ?? true,
     includeDocumentMetadata: options.includeDocumentMetadata ?? true,

@@ -72,6 +72,52 @@ describe("fixture conversion", () => {
     });
   }
 
+  const clientFixtures = ["operations", "petstore"] as const;
+  for (const fixture of clientFixtures) {
+    it(`matches ${fixture} api/client.ts when includeClient is true`, async () => {
+      const document = await loadOpenApiDocument(
+        join("test", "fixtures", fixture, "openapi.yaml"),
+      );
+      const expectedClient = (await readFixture(fixture, "expected-client.ts")).trimEnd() + "\n";
+
+      const result = convertOpenApiToZod(document, { includeClient: true });
+
+      const clientOutput = result.outputs.find((output) => output.path === "api/client.ts");
+      expect(clientOutput?.contents).toEqual(expectedClient);
+    });
+  }
+
+  it("omits api/client.ts unless includeClient is true", async () => {
+    const document = await loadOpenApiDocument(
+      join("test", "fixtures", "operations", "openapi.yaml"),
+    );
+
+    const result = convertOpenApiToZod(document);
+
+    expect(result.outputs.some((output) => output.path === "api/client.ts")).toBe(false);
+  });
+
+  it("applies the CLI --include-client flag", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
+
+    try {
+      await execFileAsync("npx", [
+        "tsx",
+        "src/cli.ts",
+        "--input",
+        join("test", "fixtures", "operations", "openapi.yaml"),
+        "--output",
+        dir,
+        "--include-client",
+      ]);
+      const contents = await readFile(join(dir, "api", "client.ts"), "utf8");
+      expect(contents).toContain("export async function getUser(");
+      expect(contents).toContain("export function createClient(config: ClientConfig)");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("promotes unsupported diagnostics when requested", async () => {
     const document = await loadOpenApiDocument(
       join("test", "fixtures", "diagnostics", "openapi.yaml"),
@@ -198,6 +244,7 @@ describe("fixture conversion", () => {
 
     expect(result.stdout).toContain("Usage: openapi-zod --input <path> --output <dir>");
     expect(result.stdout).toContain("--include-default-values");
+    expect(result.stdout).toContain("--include-client");
     expect(result.stdout).toContain("--custom-format <value>");
     expect(result.stdout).toContain("--fail-on-warning");
     expect(result.stderr).toBe("");
@@ -346,6 +393,23 @@ components:
           await mkdir(dirname(generatedFile), { recursive: true });
           generatedFiles.push(generatedFile);
           await writeFile(generatedFile, output.contents, "utf8");
+        }
+
+        const withClient = convertOpenApiToZod(document, { includeClient: true });
+        const clientOutput = withClient.outputs.find((output) => output.path === "api/client.ts");
+        if (clientOutput) {
+          const generatedFile = join(dir, fixture, "client", "api", "client.ts");
+          await mkdir(dirname(generatedFile), { recursive: true });
+          generatedFiles.push(generatedFile);
+          await writeFile(generatedFile, clientOutput.contents, "utf8");
+          for (const output of withClient.outputs) {
+            if (output.path === "api/schema.ts" || output.path === "api/operations.ts") {
+              const dependencyFile = join(dir, fixture, "client", output.path);
+              await mkdir(dirname(dependencyFile), { recursive: true });
+              generatedFiles.push(dependencyFile);
+              await writeFile(dependencyFile, output.contents, "utf8");
+            }
+          }
         }
       }
 
