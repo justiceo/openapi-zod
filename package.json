@@ -12,14 +12,7 @@
     "url": "https://github.com/justiceo/openapi-zod/issues"
   },
   "homepage": "https://github.com/justiceo/openapi-zod#readme",
-  "keywords": [
-    "openapi",
-    "zod",
-    "typescript",
-    "codegen",
-    "schema",
-    "validation"
-  ],
+  "keywords": ["openapi", "zod", "typescript", "codegen", "schema", "validation"],
   "engines": {
     "node": ">=20"
   },
@@ -33,15 +26,17 @@
       "import": "./dist/index.js"
     }
   },
-  "files": [
-    "CHANGELOG.md",
-    "dist"
-  ],
+  "files": ["CHANGELOG.md", "dist"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "demo": "npm run build && node scripts/serve-demo.mjs",
+    "format": "biome format --write .",
     "generate:fixtures": "tsx scripts/generate-fixtures.mjs",
+    "knip": "knip",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
     "pack:dry-run": "npm pack --dry-run",
+    "prepare": "git config core.hooksPath .githooks",
     "prepublishOnly": "npm run build && npm test && npm run pack:dry-run",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
@@ -53,7 +48,9 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.8",
     "@types/node": "^24.0.0",
+    "knip": "^6.32.2",
     "tsx": "^4.20.5",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4",

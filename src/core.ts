@@ -1,7 +1,7 @@
 import type { ConversionDiagnostic } from "./diagnostics.js";
 import { asRecord } from "./emit.js";
 
-export type ConvertOpenApiToZodOptions = {
+export interface ConvertOpenApiToZodOptions {
   outputMode?: "singleFile" | "multiFile";
   outputFileName?: string;
   schemaNamePrefix?: string;
@@ -20,9 +20,12 @@ export type ConvertOpenApiToZodOptions = {
   includeDefaultValues?: boolean;
   onUnsupported?: "warn" | "error";
   customFormats?: Record<string, CustomFormat>;
-};
+}
 
-export type CustomFormat = { module: string; import: string };
+export interface CustomFormat {
+  module: string;
+  import: string;
+}
 
 export type ResolvedOptions = Required<ConvertOpenApiToZodOptions>;
 export type SchemaMap = Record<string, unknown>;
@@ -37,32 +40,38 @@ export type HelperName =
   | "conditional"
   | "dependentRequired"
   | "dependentSchemas";
-export type NameMaps = {
+export interface NameMaps {
   schemaNames: Map<string, string>;
   typeNames: Map<string, string>;
   operationNames: Map<string, string>;
   order: Map<string, number>;
-};
+}
 
 export const httpMethods = ["get", "put", "post", "delete", "options", "head", "patch", "trace"] as const;
 export type HttpMethod = (typeof httpMethods)[number];
 
 export function openApiDialect(value: unknown): SchemaDialect {
-  if (typeof value === "string" && value.startsWith("3.0.")) return "3.0";
-  if (typeof value === "string" && value.startsWith("3.1.")) return "3.1";
+  if (typeof value === "string" && value.startsWith("3.0.")) {
+    return "3.0";
+  }
+  if (typeof value === "string" && value.startsWith("3.1.")) {
+    return "3.1";
+  }
   return "unknown";
 }
 
 // Mutable, shared-by-reference across every recursive convertSchema call in a single
 // top-level conversion (shallow-copied ConvertContexts all point at the same object),
 // so it tracks live recursion depth rather than depth-at-branch-point.
-export type DepthTracker = { current: number };
+interface DepthTracker {
+  current: number;
+}
 
 // A schema graph this deep either has a modeling problem or is adversarial input;
 // either way we'd rather emit a diagnostic than let the process stack-overflow.
 export const MAX_SCHEMA_DEPTH = 300;
 
-export type ConvertContext = {
+export interface ConvertContext {
   path: string;
   componentName?: string;
   schemas: SchemaMap;
@@ -75,7 +84,7 @@ export type ConvertContext = {
   options: ResolvedOptions;
   inProperty: boolean;
   depth: DepthTracker;
-};
+}
 
 export function resolveOptions(options: ConvertOpenApiToZodOptions): ResolvedOptions {
   return {
@@ -106,7 +115,7 @@ export function getSchemas(documentObject: Record<string, unknown> | undefined):
   return schemas ?? {};
 }
 
-export type SharedContext = {
+export interface SharedContext {
   components: Record<string, unknown>;
   schemas: SchemaMap;
   names: NameMaps;
@@ -117,15 +126,15 @@ export type SharedContext = {
   diagnostics: ConversionDiagnostic[];
   options: ResolvedOptions;
   reusableNames?: ReusableNames;
-};
+}
 
-export type ReusableNames = {
+interface ReusableNames {
   parameterNames: Map<string, string>;
   requestBodyNames: Map<string, string>;
   responseNames: Map<string, string>;
   headerNames: Map<string, string>;
   securityNames: Map<string, string>;
-};
+}
 
 export type ReusableResult = {
   lines: string[];

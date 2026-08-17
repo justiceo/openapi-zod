@@ -1,15 +1,15 @@
-export type DiagnosticLevel = "warning" | "error";
+type DiagnosticLevel = "warning" | "error";
 
-export type ConversionDiagnostic = {
+export interface ConversionDiagnostic {
   level: DiagnosticLevel;
   code: string;
   message: string;
   path?: string;
-};
+}
 
-export type DiagnosticOptions = {
+export interface DiagnosticOptions {
   onUnsupported: "warn" | "error";
-};
+}
 
 export function diagnostic(
   code: string,

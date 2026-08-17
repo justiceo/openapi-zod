@@ -1,7 +1,18 @@
-import { diagnostic } from "./diagnostics.js";
-import type { ConversionDiagnostic } from "./diagnostics.js";
 import type { ConvertContext, ResolvedOptions, ReusableResult, SharedContext } from "./core.js";
-import { arrayExpression, asRecord, escapePointer, literalObjectExpression, objectExpression, propertyKey, sanitizeIdentifier, uniqueName, unescapePointer, zodObjectExpression } from "./emit.js";
+import type { ConversionDiagnostic } from "./diagnostics.js";
+import { diagnostic } from "./diagnostics.js";
+import {
+  arrayExpression,
+  asRecord,
+  escapePointer,
+  literalObjectExpression,
+  objectExpression,
+  propertyKey,
+  sanitizeIdentifier,
+  unescapePointer,
+  uniqueName,
+  zodObjectExpression,
+} from "./emit.js";
 import { convertSchema } from "./schema.js";
 
 export function metadataExpression(
@@ -10,15 +21,20 @@ export function metadataExpression(
   options: ResolvedOptions,
 ): string {
   const metadata: Record<string, unknown> = {};
-  if (!documentObject) return "{}";
+  if (!documentObject) {
+    return "{}";
+  }
 
-  if (typeof documentObject.openapi === "string") metadata.openapi = documentObject.openapi;
+  if (typeof documentObject.openapi === "string") {
+    metadata.openapi = documentObject.openapi;
+  }
   const info = asRecord(documentObject.info);
   if (info) {
     const metadataInfo: Record<string, unknown> = {};
     for (const key of ["title", "version", "summary", "description", "termsOfService"]) {
-      if (typeof info[key] === "string") metadataInfo[key] = info[key];
-      else if (info[key] !== undefined) {
+      if (typeof info[key] === "string") {
+        metadataInfo[key] = info[key];
+      } else if (info[key] !== undefined) {
         diagnostics.push(diagnostic("invalid.metadata", `${key} must be a string.`, `#/info/${key}`, options));
       }
     }
@@ -33,12 +49,18 @@ export function metadataExpression(
       .map((server, index) => {
         const object = asRecord(server);
         if (!object || typeof object.url !== "string") {
-          diagnostics.push(diagnostic("invalid.metadata", "Server url must be a string.", `#/servers/${index}/url`, options));
+          diagnostics.push(
+            diagnostic("invalid.metadata", "Server url must be a string.", `#/servers/${index}/url`, options),
+          );
           return undefined;
         }
         const output: Record<string, unknown> = { url: object.url };
-        if (typeof object.description === "string") output.description = object.description;
-        if (object.variables !== undefined) output.variables = object.variables;
+        if (typeof object.description === "string") {
+          output.description = object.description;
+        }
+        if (object.variables !== undefined) {
+          output.variables = object.variables;
+        }
         return output;
       })
       .filter((server): server is Record<string, unknown> => !!server);
@@ -49,22 +71,33 @@ export function metadataExpression(
       .map((tag, index) => {
         const object = asRecord(tag);
         if (!object || typeof object.name !== "string") {
-          diagnostics.push(diagnostic("invalid.metadata", "Tag name must be a string.", `#/tags/${index}/name`, options));
+          diagnostics.push(
+            diagnostic("invalid.metadata", "Tag name must be a string.", `#/tags/${index}/name`, options),
+          );
           return undefined;
         }
         const output: Record<string, unknown> = { name: object.name };
-        if (typeof object.description === "string") output.description = object.description;
-        if (object.externalDocs !== undefined) output.externalDocs = object.externalDocs;
+        if (typeof object.description === "string") {
+          output.description = object.description;
+        }
+        if (object.externalDocs !== undefined) {
+          output.externalDocs = object.externalDocs;
+        }
         return output;
       })
       .filter((tag): tag is Record<string, unknown> => !!tag);
   }
 
-  if (documentObject.externalDocs !== undefined) metadata.externalDocs = documentObject.externalDocs;
+  if (documentObject.externalDocs !== undefined) {
+    metadata.externalDocs = documentObject.externalDocs;
+  }
   return literalObjectExpression(metadata, 0);
 }
 
-export function convertReusableComponents(documentObject: Record<string, unknown> | undefined, shared: SharedContext): ReusableResult {
+export function convertReusableComponents(
+  documentObject: Record<string, unknown> | undefined,
+  shared: SharedContext,
+): ReusableResult {
   const components = asRecord(documentObject?.components) ?? {};
   const result: ReusableResult = {
     lines: [],
@@ -84,13 +117,23 @@ export function convertReusableComponents(documentObject: Record<string, unknown
 
   const parameters = asRecord(components.parameters) ?? {};
   for (const name of Object.keys(parameters).sort()) {
-    const exportName = uniqueName(sanitizeIdentifier(`${name}Parameter`), used, `parameters/${name}`, shared.diagnostics);
+    const exportName = uniqueName(
+      sanitizeIdentifier(`${name}Parameter`),
+      used,
+      `parameters/${name}`,
+      shared.diagnostics,
+    );
     result.parameterNames.set(name, exportName);
   }
 
   const requestBodies = asRecord(components.requestBodies) ?? {};
   for (const name of Object.keys(requestBodies).sort()) {
-    const exportName = uniqueName(sanitizeIdentifier(`${name}RequestBody`), used, `requestBodies/${name}`, shared.diagnostics);
+    const exportName = uniqueName(
+      sanitizeIdentifier(`${name}RequestBody`),
+      used,
+      `requestBodies/${name}`,
+      shared.diagnostics,
+    );
     result.requestBodyNames.set(name, exportName);
   }
 
@@ -102,7 +145,12 @@ export function convertReusableComponents(documentObject: Record<string, unknown
 
   const securitySchemes = asRecord(components.securitySchemes) ?? {};
   for (const name of Object.keys(securitySchemes).sort()) {
-    const exportName = uniqueName(sanitizeIdentifier(`${name}Security`), used, `securitySchemes/${name}`, shared.diagnostics);
+    const exportName = uniqueName(
+      sanitizeIdentifier(`${name}Security`),
+      used,
+      `securitySchemes/${name}`,
+      shared.diagnostics,
+    );
     result.securityNames.set(name, exportName);
   }
 
@@ -110,41 +158,56 @@ export function convertReusableComponents(documentObject: Record<string, unknown
 
   for (const name of Object.keys(headers).sort()) {
     const exportName = result.headerNames.get(name)!;
-    result.lines.push("", `export const ${exportName} = ${convertHeader(headers[name], `${exportName}`, `#/components/headers/${escapePointer(name)}`, withNames)};`);
+    result.lines.push(
+      "",
+      `export const ${exportName} = ${convertHeader(headers[name], `${exportName}`, `#/components/headers/${escapePointer(name)}`, withNames)};`,
+    );
   }
 
   for (const name of Object.keys(parameters).sort()) {
     const exportName = result.parameterNames.get(name)!;
-    result.lines.push("", `export const ${exportName} = ${convertParameter(parameters[name], `#/components/parameters/${escapePointer(name)}`, withNames).schema};`);
+    result.lines.push(
+      "",
+      `export const ${exportName} = ${convertParameter(parameters[name], `#/components/parameters/${escapePointer(name)}`, withNames).schema};`,
+    );
   }
 
   for (const name of Object.keys(requestBodies).sort()) {
     const exportName = result.requestBodyNames.get(name)!;
-    result.lines.push("", `export const ${exportName} = ${convertRequestBody(requestBodies[name], `#/components/requestBodies/${escapePointer(name)}`, withNames)};`);
+    result.lines.push(
+      "",
+      `export const ${exportName} = ${convertRequestBody(requestBodies[name], `#/components/requestBodies/${escapePointer(name)}`, withNames)};`,
+    );
   }
 
   for (const name of Object.keys(responses).sort()) {
     const exportName = result.responseNames.get(name)!;
-    result.lines.push("", `export const ${exportName} = ${convertResponse(responses[name], `#/components/responses/${escapePointer(name)}`, withNames)};`);
+    result.lines.push(
+      "",
+      `export const ${exportName} = ${convertResponse(responses[name], `#/components/responses/${escapePointer(name)}`, withNames)};`,
+    );
   }
 
   for (const name of Object.keys(securitySchemes).sort()) {
     const exportName = result.securityNames.get(name)!;
     if (shared.options.includeSecurityValidators) {
-      result.lines.push("", `export const ${exportName} = ${convertSecurityScheme(securitySchemes[name], `#/components/securitySchemes/${escapePointer(name)}`, withNames)};`);
+      result.lines.push(
+        "",
+        `export const ${exportName} = ${convertSecurityScheme(securitySchemes[name], `#/components/securitySchemes/${escapePointer(name)}`, withNames)};`,
+      );
     }
   }
 
   return result;
 }
 
-export type ConvertedParameter = {
+export interface ConvertedParameter {
   name: string;
   location: "params" | "query" | "headers" | "cookies";
   schema: string;
   required: boolean;
   serialization?: string;
-};
+}
 
 export function convertParameter(parameter: unknown, path: string, shared: SharedContext): ConvertedParameter {
   const refName = reusableRefName(parameter, "parameters", path, shared);
@@ -174,7 +237,9 @@ export function convertParameter(parameter: unknown, path: string, shared: Share
   const rawIn = typeof object.in === "string" ? object.in : "query";
   const location = parameterLocation(rawIn);
   if (!location) {
-    shared.diagnostics.push(diagnostic("invalid.parameter", `Unsupported parameter location "${rawIn}".`, `${path}/in`, shared.options));
+    shared.diagnostics.push(
+      diagnostic("invalid.parameter", `Unsupported parameter location "${rawIn}".`, `${path}/in`, shared.options),
+    );
   }
   validateParameterSerialization(object, rawIn, path, shared);
   let schema: string;
@@ -183,14 +248,22 @@ export function convertParameter(parameter: unknown, path: string, shared: Share
   } else {
     const contentSchema = schemaFromContent(object.content, `${path}/content`, shared);
     schema = contentSchema ?? "z.unknown()";
-    if (!contentSchema) shared.diagnostics.push(diagnostic("invalid.parameter", "Parameter must define schema or supported content.", path, shared.options));
+    if (!contentSchema) {
+      shared.diagnostics.push(
+        diagnostic("invalid.parameter", "Parameter must define schema or supported content.", path, shared.options),
+      );
+    }
   }
 
   const required = rawIn === "path" ? true : object.required === true;
   if (rawIn === "path" && object.required === false) {
-    shared.diagnostics.push(diagnostic("invalid.pathParameter", "Path parameters must be required.", `${path}/required`, shared.options));
+    shared.diagnostics.push(
+      diagnostic("invalid.pathParameter", "Path parameters must be required.", `${path}/required`, shared.options),
+    );
   }
-  if (!required) schema += ".optional()";
+  if (!required) {
+    schema += ".optional()";
+  }
   const key = rawIn === "header" ? rawName.toLowerCase() : rawName;
   return {
     name: key,
@@ -201,18 +274,23 @@ export function convertParameter(parameter: unknown, path: string, shared: Share
   };
 }
 
-export function convertHeader(header: unknown, _name: string, path: string, shared: SharedContext): string {
+function convertHeader(header: unknown, _name: string, path: string, shared: SharedContext): string {
   const refName = reusableRefName(header, "headers", path, shared);
-  if (refName) return refName;
-  if (isRefObject(header)) return "z.unknown().optional()";
+  if (refName) {
+    return refName;
+  }
+  if (isRefObject(header)) {
+    return "z.unknown().optional()";
+  }
   const object = resolveReusableRef(header, "headers", path, shared) ?? asRecord(header);
   if (!object) {
     shared.diagnostics.push(diagnostic("invalid.header", "Header must be an object.", path, shared.options));
     return "z.unknown().optional()";
   }
-  let schema = object.schema !== undefined
-    ? convertSchema(object.schema, schemaContext(shared, `${path}/schema`))
-    : (schemaFromContent(object.content, `${path}/content`, shared) ?? "z.unknown()");
+  let schema =
+    object.schema !== undefined
+      ? convertSchema(object.schema, schemaContext(shared, `${path}/schema`))
+      : (schemaFromContent(object.content, `${path}/content`, shared) ?? "z.unknown()");
   validateHeaderSerialization(object, path, shared);
   schema += ".optional()";
   return schema;
@@ -220,15 +298,21 @@ export function convertHeader(header: unknown, _name: string, path: string, shar
 
 export function convertRequestBody(body: unknown, path: string, shared: SharedContext): string {
   const refName = reusableRefName(body, "requestBodies", path, shared);
-  if (refName) return refName;
-  if (isRefObject(body)) return "undefined";
+  if (refName) {
+    return refName;
+  }
+  if (isRefObject(body)) {
+    return "undefined";
+  }
   const object = resolveReusableRef(body, "requestBodies", path, shared) ?? asRecord(body);
   if (!object) {
     shared.diagnostics.push(diagnostic("invalid.requestBody", "Request body must be an object.", path, shared.options));
     return "undefined";
   }
   const entries = contentEntries(object.content, path, "requestBody", shared);
-  if (entries.length === 0) return "undefined";
+  if (entries.length === 0) {
+    return "undefined";
+  }
   const required = object.required === true;
   if (entries.length === 1) {
     const expression = entries[0]![1];
@@ -239,8 +323,12 @@ export function convertRequestBody(body: unknown, path: string, shared: SharedCo
 
 export function convertResponse(response: unknown, path: string, shared: SharedContext): string {
   const refName = reusableRefName(response, "responses", path, shared);
-  if (refName) return refName;
-  if (isRefObject(response)) return defaultResponseExpression(shared);
+  if (refName) {
+    return refName;
+  }
+  if (isRefObject(response)) {
+    return defaultResponseExpression(shared);
+  }
   const object = resolveReusableRef(response, "responses", path, shared) ?? asRecord(response);
   if (!object) {
     shared.diagnostics.push(diagnostic("invalid.response", "Response must be an object.", path, shared.options));
@@ -249,11 +337,18 @@ export function convertResponse(response: unknown, path: string, shared: SharedC
   const headers = asRecord(object.headers) ?? {};
   const headerSchemas: Record<string, string> = {};
   for (const name of Object.keys(headers).sort()) {
-    headerSchemas[name.toLowerCase()] = convertHeader(headers[name], name, `${path}/headers/${escapePointer(name)}`, shared);
+    headerSchemas[name.toLowerCase()] = convertHeader(
+      headers[name],
+      name,
+      `${path}/headers/${escapePointer(name)}`,
+      shared,
+    );
   }
   const entries = contentEntries(object.content, path, "response", shared);
   if (object.links !== undefined) {
-    shared.diagnostics.push(diagnostic("unsupported.links", "Response links are not supported.", `${path}/links`, shared.options));
+    shared.diagnostics.push(
+      diagnostic("unsupported.links", "Response links are not supported.", `${path}/links`, shared.options),
+    );
   }
   const responseProperties: Record<string, string> = {};
   if (shared.options.includeDefaultValues || typeof object.description === "string") {
@@ -268,15 +363,19 @@ export function convertResponse(response: unknown, path: string, shared: SharedC
   return objectExpression(responseProperties, 0);
 }
 
-export function defaultResponseExpression(shared: SharedContext): string {
-  if (!shared.options.includeDefaultValues) return "{}";
-  return "{ description: \"\", headers: z.object({}), content: {} }";
+function defaultResponseExpression(shared: SharedContext): string {
+  if (!shared.options.includeDefaultValues) {
+    return "{}";
+  }
+  return '{ description: "", headers: z.object({}), content: {} }';
 }
 
-export function convertSecurityScheme(scheme: unknown, path: string, shared: SharedContext): string {
+function convertSecurityScheme(scheme: unknown, path: string, shared: SharedContext): string {
   const object = asRecord(scheme);
   if (!object || typeof object.type !== "string") {
-    shared.diagnostics.push(diagnostic("invalid.securityScheme", "Security scheme must define a type.", path, shared.options));
+    shared.diagnostics.push(
+      diagnostic("invalid.securityScheme", "Security scheme must define a type.", path, shared.options),
+    );
     return "z.unknown()";
   }
   if (object.type === "apiKey") {
@@ -289,26 +388,65 @@ export function convertSecurityScheme(scheme: unknown, path: string, shared: Sha
       case "cookie":
         return `z.object({ cookies: z.object({ ${propertyKey(name)}: z.string() }) })`;
       default:
-        shared.diagnostics.push(diagnostic("invalid.securityScheme", "apiKey security must use header, query, or cookie.", `${path}/in`, shared.options));
+        shared.diagnostics.push(
+          diagnostic(
+            "invalid.securityScheme",
+            "apiKey security must use header, query, or cookie.",
+            `${path}/in`,
+            shared.options,
+          ),
+        );
         return "z.unknown()";
     }
   }
   if (object.type === "http") {
-    if (object.scheme === "basic") return 'z.object({ headers: z.object({ authorization: z.string().regex(new RegExp("^Basic .+$")) }) })';
-    if (object.scheme === "bearer") return 'z.object({ headers: z.object({ authorization: z.string().regex(new RegExp("^Bearer .+$")) }) })';
-    shared.diagnostics.push(diagnostic("unsupported.securityScheme", `Unsupported HTTP security scheme "${String(object.scheme)}".`, `${path}/scheme`, shared.options));
+    if (object.scheme === "basic") {
+      return 'z.object({ headers: z.object({ authorization: z.string().regex(new RegExp("^Basic .+$")) }) })';
+    }
+    if (object.scheme === "bearer") {
+      return 'z.object({ headers: z.object({ authorization: z.string().regex(new RegExp("^Bearer .+$")) }) })';
+    }
+    shared.diagnostics.push(
+      diagnostic(
+        "unsupported.securityScheme",
+        `Unsupported HTTP security scheme "${String(object.scheme)}".`,
+        `${path}/scheme`,
+        shared.options,
+      ),
+    );
     return "z.unknown()";
   }
   if (object.type === "oauth2" || object.type === "openIdConnect") {
     if (object.type === "oauth2" && !asRecord(object.flows)) {
-      shared.diagnostics.push(diagnostic("invalid.securityScheme", "OAuth2 security schemes must define flows.", `${path}/flows`, shared.options));
+      shared.diagnostics.push(
+        diagnostic(
+          "invalid.securityScheme",
+          "OAuth2 security schemes must define flows.",
+          `${path}/flows`,
+          shared.options,
+        ),
+      );
     }
     if (object.type === "openIdConnect" && typeof object.openIdConnectUrl !== "string") {
-      shared.diagnostics.push(diagnostic("invalid.securityScheme", "OpenID Connect security schemes must define openIdConnectUrl.", `${path}/openIdConnectUrl`, shared.options));
+      shared.diagnostics.push(
+        diagnostic(
+          "invalid.securityScheme",
+          "OpenID Connect security schemes must define openIdConnectUrl.",
+          `${path}/openIdConnectUrl`,
+          shared.options,
+        ),
+      );
     }
     return 'z.object({ headers: z.object({ authorization: z.string().regex(new RegExp("^Bearer .+$")) }) })';
   }
-  shared.diagnostics.push(diagnostic("unsupported.securityScheme", `Unsupported security scheme type "${object.type}".`, `${path}/type`, shared.options));
+  shared.diagnostics.push(
+    diagnostic(
+      "unsupported.securityScheme",
+      `Unsupported security scheme type "${object.type}".`,
+      `${path}/type`,
+      shared.options,
+    ),
+  );
   return "z.unknown()";
 }
 
@@ -336,15 +474,31 @@ function validateParameterSerialization(
   const style = parameter.style;
   const explode = parameter.explode;
   const isDefault =
-    (location === "path" && (style === undefined || style === "simple") && (explode === undefined || explode === false)) ||
+    (location === "path" &&
+      (style === undefined || style === "simple") &&
+      (explode === undefined || explode === false)) ||
     (location === "query" && (style === undefined || style === "form")) ||
     (location === "header" && (style === undefined || style === "simple")) ||
     (location === "cookie" && (style === undefined || style === "form"));
   if (!isDefault) {
-    shared.diagnostics.push(diagnostic("unsupported.parameterSerialization", "Parameter serialization is not supported.", path, shared.options));
+    shared.diagnostics.push(
+      diagnostic(
+        "unsupported.parameterSerialization",
+        "Parameter serialization is not supported.",
+        path,
+        shared.options,
+      ),
+    );
   }
   if (parameter.allowReserved === true || parameter.allowEmptyValue === true) {
-    shared.diagnostics.push(diagnostic("unsupported.parameterSerialization", "Parameter serialization flags are not supported.", path, shared.options));
+    shared.diagnostics.push(
+      diagnostic(
+        "unsupported.parameterSerialization",
+        "Parameter serialization flags are not supported.",
+        path,
+        shared.options,
+      ),
+    );
   }
 }
 
@@ -367,24 +521,31 @@ function parameterSerializationExpression(
   return hasExplicitSerialization ? literalObjectExpression(metadata, 0) : undefined;
 }
 
-function validateHeaderSerialization(
-  header: Record<string, unknown>,
-  path: string,
-  shared: SharedContext,
-): void {
+function validateHeaderSerialization(header: Record<string, unknown>, path: string, shared: SharedContext): void {
   const style = header.style;
   const explode = header.explode;
   if ((style !== undefined && style !== "simple") || (explode !== undefined && explode !== false)) {
-    shared.diagnostics.push(diagnostic("unsupported.headerSerialization", "Header serialization is not supported.", path, shared.options));
+    shared.diagnostics.push(
+      diagnostic("unsupported.headerSerialization", "Header serialization is not supported.", path, shared.options),
+    );
   }
 }
 
 function schemaFromContent(content: unknown, path: string, shared: SharedContext): string | undefined {
   const object = asRecord(content);
-  if (!object) return undefined;
+  if (!object) {
+    return undefined;
+  }
   const matching = shared.options.mediaTypes.filter((mediaType) => object[mediaType] !== undefined);
   if (matching.length !== 1) {
-    shared.diagnostics.push(diagnostic("unsupported.mediaType", "Content must contain exactly one configured media type.", path, shared.options));
+    shared.diagnostics.push(
+      diagnostic(
+        "unsupported.mediaType",
+        "Content must contain exactly one configured media type.",
+        path,
+        shared.options,
+      ),
+    );
     return undefined;
   }
   const media = asRecord(object[matching[0]!]);
@@ -400,25 +561,45 @@ function contentEntries(
   shared: SharedContext,
 ): [string, string][] {
   const object = asRecord(content);
-  if (!object) return [];
+  if (!object) {
+    return [];
+  }
   const entries: [string, string][] = [];
   for (const mediaType of shared.options.mediaTypes) {
-    if (object[mediaType] === undefined) continue;
+    if (object[mediaType] === undefined) {
+      continue;
+    }
     const media = asRecord(object[mediaType]);
     const schemaPath = `${parentPath}/content/${escapePointer(mediaType)}/schema`;
     if (!media || media.schema === undefined) {
       const code = kind === "requestBody" ? "ambiguous.requestBodySchema" : "ambiguous.responseBodySchema";
-      shared.diagnostics.push(diagnostic(code, "Selected media type is missing a schema; using unknown.", schemaPath, shared.options));
+      shared.diagnostics.push(
+        diagnostic(code, "Selected media type is missing a schema; using unknown.", schemaPath, shared.options),
+      );
       entries.push([mediaType, "z.unknown()"]);
     } else {
       entries.push([mediaType, convertSchema(media.schema, schemaContext(shared, schemaPath))]);
     }
     if (media?.encoding !== undefined) {
-      shared.diagnostics.push(diagnostic("unsupported.encoding", "Encoding is not supported.", `${parentPath}/content/${escapePointer(mediaType)}/encoding`, shared.options));
+      shared.diagnostics.push(
+        diagnostic(
+          "unsupported.encoding",
+          "Encoding is not supported.",
+          `${parentPath}/content/${escapePointer(mediaType)}/encoding`,
+          shared.options,
+        ),
+      );
     }
   }
   if (entries.length === 0 && Object.keys(object).length > 0) {
-    shared.diagnostics.push(diagnostic("unsupported.mediaType", "No configured media types were found.", `${parentPath}/content`, shared.options));
+    shared.diagnostics.push(
+      diagnostic(
+        "unsupported.mediaType",
+        "No configured media types were found.",
+        `${parentPath}/content`,
+        shared.options,
+      ),
+    );
   }
   return entries;
 }
@@ -435,10 +616,14 @@ function parseReusableRef(
   shared: SharedContext,
 ): string | undefined {
   const object = asRecord(value);
-  if (!object || typeof object.$ref !== "string") return undefined;
+  if (!object || typeof object.$ref !== "string") {
+    return undefined;
+  }
   const prefix = `#/components/${kind}/`;
   if (!object.$ref.startsWith(prefix)) {
-    shared.diagnostics.push(diagnostic("unsupported.externalRef", "External references are not supported.", `${path}/$ref`, shared.options));
+    shared.diagnostics.push(
+      diagnostic("unsupported.externalRef", "External references are not supported.", `${path}/$ref`, shared.options),
+    );
     return undefined;
   }
   return unescapePointer(object.$ref.slice(prefix.length));
@@ -451,11 +636,20 @@ function resolveReusableRef(
   shared: SharedContext,
 ): Record<string, unknown> | undefined {
   const name = parseReusableRef(value, kind, path, shared);
-  if (name === undefined) return undefined;
+  if (name === undefined) {
+    return undefined;
+  }
   const collection = asRecord(shared.components[kind]) ?? {};
   const target = asRecord(collection[name]);
   if (!target) {
-    shared.diagnostics.push(diagnostic("invalid.ref", `Reference target "${name}" was not found in components.${kind}.`, `${path}/$ref`, shared.options));
+    shared.diagnostics.push(
+      diagnostic(
+        "invalid.ref",
+        `Reference target "${name}" was not found in components.${kind}.`,
+        `${path}/$ref`,
+        shared.options,
+      ),
+    );
   }
   return target;
 }
@@ -467,15 +661,27 @@ function reusableRefName(
   shared: SharedContext,
 ): string | undefined {
   const name = parseReusableRef(value, kind, path, shared);
-  if (name === undefined) return undefined;
+  if (name === undefined) {
+    return undefined;
+  }
   const names = shared.reusableNames;
   const exportName =
-    kind === "parameters" ? names?.parameterNames.get(name)
-    : kind === "headers" ? names?.headerNames.get(name)
-    : kind === "requestBodies" ? names?.requestBodyNames.get(name)
-    : names?.responseNames.get(name);
+    kind === "parameters"
+      ? names?.parameterNames.get(name)
+      : kind === "headers"
+        ? names?.headerNames.get(name)
+        : kind === "requestBodies"
+          ? names?.requestBodyNames.get(name)
+          : names?.responseNames.get(name);
   if (!exportName) {
-    shared.diagnostics.push(diagnostic("invalid.ref", `Reference target "${name}" was not found in components.${kind}.`, `${path}/$ref`, shared.options));
+    shared.diagnostics.push(
+      diagnostic(
+        "invalid.ref",
+        `Reference target "${name}" was not found in components.${kind}.`,
+        `${path}/$ref`,
+        shared.options,
+      ),
+    );
   }
   return exportName;
 }

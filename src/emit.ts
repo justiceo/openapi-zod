@@ -1,5 +1,5 @@
-import type { ConversionDiagnostic } from "./diagnostics.js";
 import type { CustomFormat, HelperName, NameMaps, ResolvedOptions } from "./core.js";
+import type { ConversionDiagnostic } from "./diagnostics.js";
 
 const reservedWords = new Set([
   "break",
@@ -45,10 +45,10 @@ export function helperCode(helpers: Set<HelperName>, exported = false): string[]
     lines.push(
       "",
       `${keyword} __openapiZodStableJson = (value: unknown): string => {`,
-      "  if (value === null || typeof value !== \"object\") return JSON.stringify(value);",
-      "  if (Array.isArray(value)) return `[${value.map((item) => __openapiZodStableJson(item)).join(\",\")}]`;",
+      '  if (value === null || typeof value !== "object") return JSON.stringify(value);',
+      '  if (Array.isArray(value)) return `[${value.map((item) => __openapiZodStableJson(item)).join(",")}]`;',
       "  const object = value as Record<string, unknown>;",
-      "  return `{${Object.keys(object).sort().map((key) => `${JSON.stringify(key)}:${__openapiZodStableJson(object[key])}`).join(\",\")}}`;",
+      '  return `{${Object.keys(object).sort().map((key) => `${JSON.stringify(key)}:${__openapiZodStableJson(object[key])}`).join(",")}}`;',
       "};",
     );
   }
@@ -60,7 +60,7 @@ export function helperCode(helpers: Set<HelperName>, exported = false): string[]
       "  for (const schema of schemas) {",
       "    if (schema.safeParse(value).success) matches += 1;",
       "  }",
-      "  if (matches !== 1) ctx.addIssue({ code: \"custom\", message: \"Expected exactly one schema to match.\" });",
+      '  if (matches !== 1) ctx.addIssue({ code: "custom", message: "Expected exactly one schema to match." });',
       "};",
     );
   }
@@ -72,7 +72,7 @@ export function helperCode(helpers: Set<HelperName>, exported = false): string[]
       "  for (const item of items) {",
       "    const key = __openapiZodStableJson(item);",
       "    if (seen.has(key)) {",
-      "      ctx.addIssue({ code: \"custom\", message: \"Expected array items to be unique.\" });",
+      '      ctx.addIssue({ code: "custom", message: "Expected array items to be unique." });',
       "      return;",
       "    }",
       "    seen.add(key);",
@@ -85,7 +85,7 @@ export function helperCode(helpers: Set<HelperName>, exported = false): string[]
       "",
       `${keyword} __openapiZodPropertyNames = (value: Record<string, unknown>, ctx: z.core.$RefinementCtx, schema: z.ZodType): void => {`,
       "  for (const key of Object.keys(value)) {",
-      "    if (!schema.safeParse(key).success) ctx.addIssue({ code: \"custom\", path: [key], message: \"Object property name did not match the required schema.\" });",
+      '    if (!schema.safeParse(key).success) ctx.addIssue({ code: "custom", path: [key], message: "Object property name did not match the required schema." });',
       "  }",
       "};",
     );
@@ -96,7 +96,7 @@ export function helperCode(helpers: Set<HelperName>, exported = false): string[]
       `${keyword} __openapiZodPatternProperties = (value: Record<string, unknown>, ctx: z.core.$RefinementCtx, patterns: Array<[RegExp, z.ZodType]>): void => {`,
       "  for (const [key, child] of Object.entries(value)) {",
       "    for (const [pattern, schema] of patterns) {",
-      "      if (pattern.test(key) && !schema.safeParse(child).success) ctx.addIssue({ code: \"custom\", path: [key], message: \"Object property did not match its patternProperties schema.\" });",
+      '      if (pattern.test(key) && !schema.safeParse(child).success) ctx.addIssue({ code: "custom", path: [key], message: "Object property did not match its patternProperties schema." });',
       "    }",
       "  }",
       "};",
@@ -110,8 +110,8 @@ export function helperCode(helpers: Set<HelperName>, exported = false): string[]
       "  for (const item of items) {",
       "    if (schema.safeParse(item).success) matches += 1;",
       "  }",
-      "  if (matches < min) ctx.addIssue({ code: \"custom\", message: `Expected at least ${min} matching array item(s).` });",
-      "  if (max !== undefined && matches > max) ctx.addIssue({ code: \"custom\", message: `Expected at most ${max} matching array item(s).` });",
+      '  if (matches < min) ctx.addIssue({ code: "custom", message: `Expected at least ${min} matching array item(s).` });',
+      '  if (max !== undefined && matches > max) ctx.addIssue({ code: "custom", message: `Expected at most ${max} matching array item(s).` });',
       "};",
     );
   }
@@ -120,8 +120,8 @@ export function helperCode(helpers: Set<HelperName>, exported = false): string[]
       "",
       `${keyword} __openapiZodConditional = (value: unknown, ctx: z.core.$RefinementCtx, ifSchema: z.ZodType, thenSchema: z.ZodType | undefined, elseSchema: z.ZodType | undefined): void => {`,
       "  const matched = ifSchema.safeParse(value).success;",
-      "  if (matched && thenSchema && !thenSchema.safeParse(value).success) ctx.addIssue({ code: \"custom\", message: \"Value did not match the conditional then schema.\" });",
-      "  if (!matched && elseSchema && !elseSchema.safeParse(value).success) ctx.addIssue({ code: \"custom\", message: \"Value did not match the conditional else schema.\" });",
+      '  if (matched && thenSchema && !thenSchema.safeParse(value).success) ctx.addIssue({ code: "custom", message: "Value did not match the conditional then schema." });',
+      '  if (!matched && elseSchema && !elseSchema.safeParse(value).success) ctx.addIssue({ code: "custom", message: "Value did not match the conditional else schema." });',
       "};",
     );
   }
@@ -132,7 +132,7 @@ export function helperCode(helpers: Set<HelperName>, exported = false): string[]
       "  for (const [key, required] of Object.entries(dependencies)) {",
       "    if (!(key in value)) continue;",
       "    for (const requiredKey of required) {",
-      "      if (!(requiredKey in value)) ctx.addIssue({ code: \"custom\", path: [requiredKey], message: `Property ${requiredKey} is required when ${key} is present.` });",
+      '      if (!(requiredKey in value)) ctx.addIssue({ code: "custom", path: [requiredKey], message: `Property ${requiredKey} is required when ${key} is present.` });',
       "    }",
       "  }",
       "};",
@@ -143,7 +143,7 @@ export function helperCode(helpers: Set<HelperName>, exported = false): string[]
       "",
       `${keyword} __openapiZodDependentSchemas = (value: Record<string, unknown>, ctx: z.core.$RefinementCtx, schemas: Array<[string, z.ZodType]>): void => {`,
       "  for (const [key, schema] of schemas) {",
-      "    if (key in value && !schema.safeParse(value).success) ctx.addIssue({ code: \"custom\", path: [key], message: `Object did not match dependent schema for ${key}.` });",
+      '    if (key in value && !schema.safeParse(value).success) ctx.addIssue({ code: "custom", path: [key], message: `Object did not match dependent schema for ${key}.` });',
       "  }",
       "};",
     );
@@ -160,10 +160,16 @@ export function customFormatImportLines(
   const lines: string[] = [];
   for (const name of Array.from(usedFormats).sort()) {
     const customFormat = customFormats[name];
-    if (!customFormat) continue;
+    if (!customFormat) {
+      continue;
+    }
     const key = `${customFormat.module}#${customFormat.import}`;
-    if (seen.has(key)) continue;
-    if (!new RegExp(`\\b${customFormat.import}\\b`).test(text)) continue;
+    if (seen.has(key)) {
+      continue;
+    }
+    if (!new RegExp(`\\b${customFormat.import}\\b`).test(text)) {
+      continue;
+    }
     seen.add(key);
     lines.push(`import { ${customFormat.import} } from ${JSON.stringify(customFormat.module)};`);
   }
@@ -172,29 +178,44 @@ export function customFormatImportLines(
 
 export function zodObjectExpression(properties: Record<string, string>): string {
   const keys = Object.keys(properties).sort();
-  if (keys.length === 0) return "z.object({})";
+  if (keys.length === 0) {
+    return "z.object({})";
+  }
   return `z.object({\n${keys.map((key) => `  ${propertyKey(key)}: ${indentMultiline(properties[key], 2)},`).join("\n")}\n})`;
 }
 
 export function objectExpression(properties: Record<string, string>, indent: number): string {
   const keys = Object.keys(properties);
-  if (keys.length === 0) return "{}";
+  if (keys.length === 0) {
+    return "{}";
+  }
   const pad = " ".repeat(indent);
   const childPad = " ".repeat(indent + 2);
   return `{\n${keys.map((key) => `${childPad}${propertyKey(key)}: ${indentMultiline(properties[key], indent + 2)},`).join("\n")}\n${pad}}`;
 }
 
 export function literalObjectExpression(value: unknown, indent: number): string {
-  if (value === undefined) return "undefined";
+  if (value === undefined) {
+    return "undefined";
+  }
   if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
     return JSON.stringify(value);
   }
-  if (Array.isArray(value)) return arrayExpression(value.map((item) => literalObjectExpression(item, 0)), indent);
+  if (Array.isArray(value)) {
+    return arrayExpression(
+      value.map((item) => literalObjectExpression(item, 0)),
+      indent,
+    );
+  }
   const object = asRecord(value);
-  if (!object) return "undefined";
+  if (!object) {
+    return "undefined";
+  }
   const entries: Record<string, string> = {};
   for (const key of Object.keys(object).sort()) {
-    if (key.startsWith("x-")) continue;
+    if (key.startsWith("x-")) {
+      continue;
+    }
     entries[key] = literalObjectExpression(object[key], 0);
   }
   return objectExpression(entries, indent);
@@ -205,16 +226,23 @@ export function arrayLiteral(values: string[]): string {
 }
 
 export function arrayExpression(values: string[], indent: number): string {
-  if (values.length === 0) return "[]";
-  if (values.every((value) => !value.includes("\n"))) return arrayLiteral(values);
+  if (values.length === 0) {
+    return "[]";
+  }
+  if (values.every((value) => !value.includes("\n"))) {
+    return arrayLiteral(values);
+  }
   const pad = " ".repeat(indent);
   const childPad = " ".repeat(indent + 2);
   return `[\n${values.map((value) => `${childPad}${indentMultiline(value, indent + 2)},`).join("\n")}\n${pad}]`;
 }
 
-export function indentMultiline(value: string, indent: number): string {
+function indentMultiline(value: string, indent: number): string {
   const padding = " ".repeat(indent);
-  return value.split("\n").map((line, index) => index === 0 ? line : `${padding}${line}`).join("\n");
+  return value
+    .split("\n")
+    .map((line, index) => (index === 0 ? line : `${padding}${line}`))
+    .join("\n");
 }
 
 export function capitalize(value: string): string {
@@ -235,23 +263,15 @@ export function buildNames(
 
   for (const [index, componentName] of componentNames.entries()) {
     order.set(componentName, index);
-    const schemaBase = sanitizeIdentifier(
-      `${options.schemaNamePrefix}${componentName}${options.schemaNameSuffix}`,
-    );
-    schemaNames.set(
-      componentName,
-      uniqueName(schemaBase, usedSchemaNames, componentName, diagnostics),
-    );
+    const schemaBase = sanitizeIdentifier(`${options.schemaNamePrefix}${componentName}${options.schemaNameSuffix}`);
+    schemaNames.set(componentName, uniqueName(schemaBase, usedSchemaNames, componentName, diagnostics));
 
     const typeBase = sanitizeIdentifier(
       options.schemaNameSuffix && componentName.endsWith(options.schemaNameSuffix)
         ? componentName.slice(0, -options.schemaNameSuffix.length)
         : componentName,
     );
-    typeNames.set(
-      componentName,
-      uniqueName(typeBase, usedTypeNames, componentName, diagnostics),
-    );
+    typeNames.set(componentName, uniqueName(typeBase, usedTypeNames, componentName, diagnostics));
   }
 
   return { schemaNames, typeNames, operationNames, order };
@@ -265,7 +285,9 @@ export function uniqueName(
 ): string {
   const count = used.get(base) ?? 0;
   used.set(base, count + 1);
-  if (count === 0) return base;
+  if (count === 0) {
+    return base;
+  }
 
   diagnostics.push({
     level: "warning",
@@ -278,15 +300,25 @@ export function uniqueName(
 
 export function sanitizeIdentifier(value: string): string {
   let result = value.replace(/[^A-Za-z0-9_$]/g, "");
-  if (!/^[A-Za-z_$]/.test(result)) result = `Schema${result}`;
-  if (reservedWords.has(result)) result = `Schema${result}`;
+  if (!/^[A-Za-z_$]/.test(result)) {
+    result = `Schema${result}`;
+  }
+  if (reservedWords.has(result)) {
+    result = `Schema${result}`;
+  }
   return result || "Schema";
 }
 
 export function jsonLiteral(value: unknown): string | undefined {
-  if (value === null) return "null";
-  if (typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
-  if (typeof value === "number") return Number.isFinite(value) ? String(value) : undefined;
+  if (value === null) {
+    return "null";
+  }
+  if (typeof value === "string" || typeof value === "boolean") {
+    return JSON.stringify(value);
+  }
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? String(value) : undefined;
+  }
   if (Array.isArray(value)) {
     const values = value.map(jsonLiteral);
     return values.includes(undefined) ? undefined : `[${values.join(", ")}]`;
@@ -305,27 +337,31 @@ export function jsonLiteral(value: unknown): string | undefined {
 }
 
 export function stableJson(value: unknown): string | undefined {
-  if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
-  if (typeof value === "number") return Number.isFinite(value) ? String(value) : undefined;
+  if (value === null || typeof value === "string" || typeof value === "boolean") {
+    return JSON.stringify(value);
+  }
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? String(value) : undefined;
+  }
   if (Array.isArray(value)) {
     const values = value.map(stableJson);
     return values.includes(undefined) ? undefined : `[${values.join(",")}]`;
   }
   const object = asRecord(value);
   if (object) {
-    const entries = Object.keys(object).sort().map((key) => {
-      const child = stableJson(object[key]);
-      return child === undefined ? undefined : `${JSON.stringify(key)}:${child}`;
-    });
+    const entries = Object.keys(object)
+      .sort()
+      .map((key) => {
+        const child = stableJson(object[key]);
+        return child === undefined ? undefined : `${JSON.stringify(key)}:${child}`;
+      });
     return entries.includes(undefined) ? undefined : `{${entries.join(",")}}`;
   }
   return undefined;
 }
 
 export function propertyKey(value: string): string {
-  return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(value) && !reservedWords.has(value)
-    ? value
-    : JSON.stringify(value);
+  return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(value) && !reservedWords.has(value) ? value : JSON.stringify(value);
 }
 
 export function isFiniteNumber(value: unknown): value is number {
@@ -337,7 +373,9 @@ export function isSchemaObject(value: unknown): value is Record<string, unknown>
 }
 
 export function asRecord(value: unknown): Record<string, unknown> | undefined {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
   return value as Record<string, unknown>;
 }
 
@@ -345,7 +383,9 @@ export function usedIdentifiers(text: string, candidates: Iterable<string>): str
   const used: string[] = [];
   for (const candidate of candidates) {
     // todo: investigate if a literal `$` in an identifier acts as an end-of-string anchor instead of a literal character, breaking the match.
-    if (new RegExp(`\\b${candidate}\\b`).test(text)) used.push(candidate);
+    if (new RegExp(`\\b${candidate}\\b`).test(text)) {
+      used.push(candidate);
+    }
   }
   return used.sort();
 }
