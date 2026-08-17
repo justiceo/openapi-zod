@@ -1,6 +1,16 @@
+import { type ConvertContext, MAX_SCHEMA_DEPTH, type SchemaMap } from "./core.js";
 import { diagnostic } from "./diagnostics.js";
-import { MAX_SCHEMA_DEPTH, type ConvertContext, type SchemaMap } from "./core.js";
-import { asRecord, escapePointer, isFiniteNumber, isSchemaObject, jsonLiteral, literalObjectExpression, propertyKey, stableJson, unescapePointer } from "./emit.js";
+import {
+  asRecord,
+  escapePointer,
+  isFiniteNumber,
+  isSchemaObject,
+  jsonLiteral,
+  literalObjectExpression,
+  propertyKey,
+  stableJson,
+  unescapePointer,
+} from "./emit.js";
 
 export function convertSchema(schema: unknown, context: ConvertContext): string {
   if (context.depth.current >= MAX_SCHEMA_DEPTH) {
@@ -33,16 +43,31 @@ function convertSchemaInner(schema: unknown, context: ConvertContext): string {
   }
 
   if (object.discriminator !== undefined) {
-    addDiagnostic(context, "unsupported.discriminator", "Discriminators are not supported.", `${context.path}/discriminator`);
+    addDiagnostic(
+      context,
+      "unsupported.discriminator",
+      "Discriminators are not supported.",
+      `${context.path}/discriminator`,
+    );
   }
 
   if (context.dialect === "3.1" && object.nullable === true) {
-    addDiagnostic(context, "unsupported.keyword", "nullable is an OpenAPI 3.0 keyword; use a type array including null in OpenAPI 3.1.", `${context.path}/nullable`);
+    addDiagnostic(
+      context,
+      "unsupported.keyword",
+      "nullable is an OpenAPI 3.0 keyword; use a type array including null in OpenAPI 3.1.",
+      `${context.path}/nullable`,
+    );
   }
 
   for (const keyword of ["unevaluatedProperties", "unevaluatedItems"] as const) {
     if (object[keyword] !== undefined) {
-      addDiagnostic(context, "unsupported.keyword", `${keyword} requires JSON Schema evaluation state and is not supported.`, `${context.path}/${keyword}`);
+      addDiagnostic(
+        context,
+        "unsupported.keyword",
+        `${keyword} requires JSON Schema evaluation state and is not supported.`,
+        `${context.path}/${keyword}`,
+      );
     }
   }
 
@@ -56,7 +81,7 @@ function convertSchemaInner(schema: unknown, context: ConvertContext): string {
     return applyDefault(convertAllOf(object.allOf, context), object, context);
   }
 
-  if (Object.prototype.hasOwnProperty.call(object, "const")) {
+  if (Object.hasOwn(object, "const")) {
     return applyDefault(literalExpression(object.const, context, "unsafe.literal") ?? "z.unknown()", object, context);
   }
 
@@ -68,15 +93,15 @@ function convertSchemaInner(schema: unknown, context: ConvertContext): string {
   let expression: string;
 
   if (types.length > 1) {
-    expression = `z.union([${types
-      .map((type) => convertTypedSchema(object, type, context))
-      .join(", ")}])`;
+    expression = `z.union([${types.map((type) => convertTypedSchema(object, type, context)).join(", ")}])`;
   } else {
     const type = types[0];
     expression = convertTypedSchema(object, type, context);
   }
 
-  if (nullable) expression += ".nullable()";
+  if (nullable) {
+    expression += ".nullable()";
+  }
   expression = applyDefault(expression, object, context);
   expression = applyConditional(expression, object, context);
   return expression;
@@ -122,11 +147,7 @@ function normalizeType(
   return { types: ["unknown"], nullable: false };
 }
 
-function convertTypedSchema(
-  schema: Record<string, unknown>,
-  type: string,
-  context: ConvertContext,
-): string {
+function convertTypedSchema(schema: Record<string, unknown>, type: string, context: ConvertContext): string {
   switch (type) {
     case "string":
       return convertString(schema, context);
@@ -175,7 +196,8 @@ function errorMessageFor(schema: Record<string, unknown>, keyword: string): stri
 const IDN_HOSTNAME_REGEX =
   "/^[\\p{L}\\p{N}](?:[\\p{L}\\p{N}-]{0,61}[\\p{L}\\p{N}])?(?:\\.[\\p{L}\\p{N}](?:[\\p{L}\\p{N}-]{0,61}[\\p{L}\\p{N}])?)*$/u";
 const IDN_EMAIL_REGEX = "/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/u";
-const URI_REFERENCE_REGEX = "/^[A-Za-z][A-Za-z0-9+.-]*:\\/\\/[^\\s]*$|^[^\\s:]*$|^\\/[^\\s]*$|^[^\\s]*\\?[^\\s]*$|^[^\\s]*#[^\\s]*$/";
+const URI_REFERENCE_REGEX =
+  "/^[A-Za-z][A-Za-z0-9+.-]*:\\/\\/[^\\s]*$|^[^\\s:]*$|^\\/[^\\s]*$|^[^\\s]*\\?[^\\s]*$|^[^\\s]*#[^\\s]*$/";
 const IRI_REGEX = "/^[A-Za-z][A-Za-z0-9+.-]*:\\S*$/u";
 const IRI_REFERENCE_REGEX = "/^\\S*$/u";
 const URI_TEMPLATE_REGEX = "/^(?:[^{}]|\\{[^{}]*\\})*$/";
@@ -191,9 +213,8 @@ function convertString(schema: Record<string, unknown>, context: ConvertContext)
       case "email": {
         const message = errorMessageFor(schema, "format");
         const trim = schema["x-trim"] === true ? ".trim()" : "";
-        expression = trim || message
-          ? `z.string()${trim}.email(${message ? JSON.stringify(message) : ""})`
-          : "z.email()";
+        expression =
+          trim || message ? `z.string()${trim}.email(${message ? JSON.stringify(message) : ""})` : "z.email()";
         break;
       }
       case "uuid":
@@ -299,15 +320,27 @@ function convertString(schema: Record<string, unknown>, context: ConvertContext)
 }
 
 function formatOptionsArgument(schema: Record<string, unknown>, context: ConvertContext): string {
-  if (schema["x-format-options"] === undefined) return "";
+  if (schema["x-format-options"] === undefined) {
+    return "";
+  }
   const object = asRecord(schema["x-format-options"]);
   if (!object) {
-    addDiagnostic(context, "invalid.schema", "x-format-options must be a plain object.", `${context.path}/x-format-options`);
+    addDiagnostic(
+      context,
+      "invalid.schema",
+      "x-format-options must be a plain object.",
+      `${context.path}/x-format-options`,
+    );
     return "";
   }
   const literal = jsonLiteral(object);
   if (literal === undefined) {
-    addDiagnostic(context, "invalid.schema", "x-format-options cannot be emitted safely.", `${context.path}/x-format-options`);
+    addDiagnostic(
+      context,
+      "invalid.schema",
+      "x-format-options cannot be emitted safely.",
+      `${context.path}/x-format-options`,
+    );
     return "";
   }
   return `, ${literal}`;
@@ -321,29 +354,49 @@ function integerBase(schema: Record<string, unknown>): string {
 }
 
 function numberBase(schema: Record<string, unknown>): string {
-  if (schema.format === "float") return "z.float32()";
-  if (schema.format === "double") return "z.float64()";
+  if (schema.format === "float") {
+    return "z.float32()";
+  }
+  if (schema.format === "double") {
+    return "z.float64()";
+  }
   return "z.number()";
 }
 
-function convertNumber(
-  base: string,
-  schema: Record<string, unknown>,
-  context: ConvertContext,
-): string {
+function convertNumber(base: string, schema: Record<string, unknown>, context: ConvertContext): string {
   let expression = base;
 
   if (context.dialect === "3.0" && isFiniteNumber(schema.exclusiveMinimum)) {
-    addDiagnostic(context, "invalid.numericConstraint", "OpenAPI 3.0 exclusiveMinimum must be boolean.", `${context.path}/exclusiveMinimum`);
+    addDiagnostic(
+      context,
+      "invalid.numericConstraint",
+      "OpenAPI 3.0 exclusiveMinimum must be boolean.",
+      `${context.path}/exclusiveMinimum`,
+    );
   }
   if (context.dialect === "3.0" && isFiniteNumber(schema.exclusiveMaximum)) {
-    addDiagnostic(context, "invalid.numericConstraint", "OpenAPI 3.0 exclusiveMaximum must be boolean.", `${context.path}/exclusiveMaximum`);
+    addDiagnostic(
+      context,
+      "invalid.numericConstraint",
+      "OpenAPI 3.0 exclusiveMaximum must be boolean.",
+      `${context.path}/exclusiveMaximum`,
+    );
   }
   if (context.dialect === "3.1" && typeof schema.exclusiveMinimum === "boolean") {
-    addDiagnostic(context, "invalid.numericConstraint", "OpenAPI 3.1 exclusiveMinimum must be numeric.", `${context.path}/exclusiveMinimum`);
+    addDiagnostic(
+      context,
+      "invalid.numericConstraint",
+      "OpenAPI 3.1 exclusiveMinimum must be numeric.",
+      `${context.path}/exclusiveMinimum`,
+    );
   }
   if (context.dialect === "3.1" && typeof schema.exclusiveMaximum === "boolean") {
-    addDiagnostic(context, "invalid.numericConstraint", "OpenAPI 3.1 exclusiveMaximum must be numeric.", `${context.path}/exclusiveMaximum`);
+    addDiagnostic(
+      context,
+      "invalid.numericConstraint",
+      "OpenAPI 3.1 exclusiveMaximum must be numeric.",
+      `${context.path}/exclusiveMaximum`,
+    );
   }
 
   if (isFiniteNumber(schema.exclusiveMinimum)) {
@@ -362,13 +415,33 @@ function convertNumber(
     expression += `.lte(${schema.maximum})`;
   }
 
-  if (schema.exclusiveMinimum !== undefined && schema.exclusiveMinimum !== true && !isFiniteNumber(schema.exclusiveMinimum)) {
-    addDiagnostic(context, "invalid.numericConstraint", "exclusiveMinimum must be numeric or true.", `${context.path}/exclusiveMinimum`);
+  if (
+    schema.exclusiveMinimum !== undefined &&
+    schema.exclusiveMinimum !== true &&
+    !isFiniteNumber(schema.exclusiveMinimum)
+  ) {
+    addDiagnostic(
+      context,
+      "invalid.numericConstraint",
+      "exclusiveMinimum must be numeric or true.",
+      `${context.path}/exclusiveMinimum`,
+    );
   }
-  if (schema.exclusiveMaximum !== undefined && schema.exclusiveMaximum !== true && !isFiniteNumber(schema.exclusiveMaximum)) {
-    addDiagnostic(context, "invalid.numericConstraint", "exclusiveMaximum must be numeric or true.", `${context.path}/exclusiveMaximum`);
+  if (
+    schema.exclusiveMaximum !== undefined &&
+    schema.exclusiveMaximum !== true &&
+    !isFiniteNumber(schema.exclusiveMaximum)
+  ) {
+    addDiagnostic(
+      context,
+      "invalid.numericConstraint",
+      "exclusiveMaximum must be numeric or true.",
+      `${context.path}/exclusiveMaximum`,
+    );
   }
-  if (isFiniteNumber(schema.multipleOf)) expression += `.multipleOf(${schema.multipleOf})`;
+  if (isFiniteNumber(schema.multipleOf)) {
+    expression += `.multipleOf(${schema.multipleOf})`;
+  }
   return expression;
 }
 
@@ -377,12 +450,12 @@ function convertArray(schema: Record<string, unknown>, context: ConvertContext):
     const tupleItems = schema.prefixItems.map((item, index) =>
       convertSchema(item, { ...context, path: `${context.path}/prefixItems/${index}`, inProperty: false }),
     );
-    const rest = schema.items === undefined
-      ? undefined
-      : convertSchema(schema.items, { ...context, path: `${context.path}/items`, inProperty: false });
-    let expression = rest === undefined
-      ? `z.tuple([${tupleItems.join(", ")}])`
-      : `z.tuple([${tupleItems.join(", ")}], ${rest})`;
+    const rest =
+      schema.items === undefined
+        ? undefined
+        : convertSchema(schema.items, { ...context, path: `${context.path}/items`, inProperty: false });
+    let expression =
+      rest === undefined ? `z.tuple([${tupleItems.join(", ")}])` : `z.tuple([${tupleItems.join(", ")}], ${rest})`;
     expression = applyArrayConstraints(expression, schema, context);
     return expression;
   }
@@ -399,11 +472,7 @@ function convertArray(schema: Record<string, unknown>, context: ConvertContext):
   return expression;
 }
 
-function applyArrayConstraints(
-  expression: string,
-  schema: Record<string, unknown>,
-  context: ConvertContext,
-): string {
+function applyArrayConstraints(expression: string, schema: Record<string, unknown>, context: ConvertContext): string {
   if (isFiniteNumber(schema.minItems)) {
     const message = errorMessageFor(schema, "minItems");
     expression += message ? `.min(${schema.minItems}, ${JSON.stringify(message)})` : `.min(${schema.minItems})`;
@@ -418,7 +487,11 @@ function applyArrayConstraints(
   }
   if (schema.contains !== undefined) {
     context.helpers.add("contains");
-    const containsSchema = convertSchema(schema.contains, { ...context, path: `${context.path}/contains`, inProperty: false });
+    const containsSchema = convertSchema(schema.contains, {
+      ...context,
+      path: `${context.path}/contains`,
+      inProperty: false,
+    });
     const min = isFiniteNumber(schema.minContains) ? schema.minContains : 1;
     const max = isFiniteNumber(schema.maxContains) ? schema.maxContains : undefined;
     expression += `.superRefine((items, ctx) => __openapiZodContains(items, ctx, ${containsSchema}, ${min}, ${max === undefined ? "undefined" : max}))`;
@@ -428,8 +501,12 @@ function applyArrayConstraints(
 
 function schemaHasDefault(schema: unknown, context: ConvertContext): boolean {
   const object = asRecord(schema);
-  if (!object) return false;
-  if (object.default !== undefined) return true;
+  if (!object) {
+    return false;
+  }
+  if (object.default !== undefined) {
+    return true;
+  }
   if (typeof object.$ref === "string" && object.$ref.startsWith("#/components/schemas/")) {
     const target = unescapePointer(object.$ref.slice("#/components/schemas/".length));
     const targetSchema = context.schemas[target];
@@ -464,11 +541,10 @@ function convertObject(schema: Record<string, unknown>, context: ConvertContext)
     }
   }
 
-  const required = new Set(Array.isArray(schema.required) ? schema.required.filter((item): item is string => typeof item === "string") : []);
-  const base =
-    schema.additionalProperties === false || context.options.strictObjects
-      ? "z.strictObject"
-      : "z.object";
+  const required = new Set(
+    Array.isArray(schema.required) ? schema.required.filter((item): item is string => typeof item === "string") : [],
+  );
+  const base = schema.additionalProperties === false || context.options.strictObjects ? "z.strictObject" : "z.object";
   const lines = [`${base}({`];
   for (const propertyName of propertyNames) {
     const propertySchema = properties![propertyName];
@@ -483,7 +559,9 @@ function convertObject(schema: Record<string, unknown>, context: ConvertContext)
     // even though the value is always present after parsing. Only add .optional()
     // when there's no default to fall back on -- resolving one level of $ref, since
     // a $ref'd component's own `default` (not a sibling on the $ref pointer) counts too.
-    if (!required.has(propertyName) && !schemaHasDefault(propertySchema, context)) propertyExpression += ".optional()";
+    if (!required.has(propertyName) && !schemaHasDefault(propertySchema, context)) {
+      propertyExpression += ".optional()";
+    }
     lines.push(`  ${propertyKey(propertyName)}: ${propertyExpression},`);
   }
   lines.push("})");
@@ -513,11 +591,7 @@ function convertEnum(values: unknown[], context: ConvertContext): string {
   return `z.union([${literals.join(", ")}])`;
 }
 
-function applyObjectConstraints(
-  expression: string,
-  schema: Record<string, unknown>,
-  context: ConvertContext,
-): string {
+function applyObjectConstraints(expression: string, schema: Record<string, unknown>, context: ConvertContext): string {
   let result = expression;
   if (isFiniteNumber(schema.minProperties)) {
     result += `.refine((value) => Object.keys(value).length >= ${schema.minProperties}, { message: "Expected at least ${schema.minProperties} properties." })`;
@@ -539,7 +613,9 @@ function applyObjectConstraints(
     const patterns: string[] = [];
     for (const key of Object.keys(patternProperties).sort()) {
       const regexp = regexpExpression(key, context, `${context.path}/patternProperties/${escapePointer(key)}`);
-      if (!regexp) continue;
+      if (!regexp) {
+        continue;
+      }
       const valueSchema = convertSchema(patternProperties[key], {
         ...context,
         path: `${context.path}/patternProperties/${escapePointer(key)}`,
@@ -560,7 +636,12 @@ function applyObjectConstraints(
       if (Array.isArray(values) && values.every((item) => typeof item === "string")) {
         dependencies[key] = values.slice().sort();
       } else {
-        addDiagnostic(context, "invalid.schema", "dependentRequired values must be string arrays.", `${context.path}/dependentRequired/${escapePointer(key)}`);
+        addDiagnostic(
+          context,
+          "invalid.schema",
+          "dependentRequired values must be string arrays.",
+          `${context.path}/dependentRequired/${escapePointer(key)}`,
+        );
       }
     }
     if (Object.keys(dependencies).length > 0) {
@@ -589,10 +670,14 @@ function applyObjectConstraints(
 
 function areBranchesProvablyDisjoint(branches: unknown[]): boolean {
   const signatures = branches.map(branchSignature);
-  if (signatures.some((signature) => signature === undefined)) return false;
+  if (signatures.some((signature) => signature === undefined)) {
+    return false;
+  }
   for (let left = 0; left < signatures.length; left += 1) {
     for (let right = left + 1; right < signatures.length; right += 1) {
-      if (!signaturesDisjoint(signatures[left]!, signatures[right]!)) return false;
+      if (!signaturesDisjoint(signatures[left]!, signatures[right]!)) {
+        return false;
+      }
     }
   }
   return true;
@@ -605,9 +690,15 @@ type BranchSignature =
 
 function branchSignature(branch: unknown): BranchSignature | undefined {
   const object = asRecord(branch);
-  if (!object) return undefined;
-  if (Object.prototype.hasOwnProperty.call(object, "const")) return { kind: "literal", value: object.const };
-  if (Array.isArray(object.enum)) return { kind: "enum", values: object.enum };
+  if (!object) {
+    return undefined;
+  }
+  if (Object.hasOwn(object, "const")) {
+    return { kind: "literal", value: object.const };
+  }
+  if (Array.isArray(object.enum)) {
+    return { kind: "enum", values: object.enum };
+  }
   const { types } = normalizeTypeForSignature(object);
   return types.length === 1 ? { kind: "type", value: types[0]! } : undefined;
 }
@@ -620,27 +711,45 @@ function normalizeTypeForSignature(schema: Record<string, unknown>): { types: st
 }
 
 function signaturesDisjoint(left: BranchSignature, right: BranchSignature): boolean {
-  if (left.kind === "type" && right.kind === "type") return left.value !== right.value;
+  if (left.kind === "type" && right.kind === "type") {
+    return left.value !== right.value;
+  }
   const leftValues = signatureLiteralValues(left);
   const rightValues = signatureLiteralValues(right);
   if (leftValues && rightValues) {
-    return !leftValues.some((leftValue) => rightValues.some((rightValue) => jsonLiteral(leftValue) === jsonLiteral(rightValue)));
+    return !leftValues.some((leftValue) =>
+      rightValues.some((rightValue) => jsonLiteral(leftValue) === jsonLiteral(rightValue)),
+    );
   }
-  if (leftValues && right.kind === "type") return leftValues.every((value) => literalType(value) !== right.value);
-  if (rightValues && left.kind === "type") return rightValues.every((value) => literalType(value) !== left.value);
+  if (leftValues && right.kind === "type") {
+    return leftValues.every((value) => literalType(value) !== right.value);
+  }
+  if (rightValues && left.kind === "type") {
+    return rightValues.every((value) => literalType(value) !== left.value);
+  }
   return false;
 }
 
 function signatureLiteralValues(signature: BranchSignature): unknown[] | undefined {
-  if (signature.kind === "literal") return [signature.value];
-  if (signature.kind === "enum") return signature.values;
+  if (signature.kind === "literal") {
+    return [signature.value];
+  }
+  if (signature.kind === "enum") {
+    return signature.values;
+  }
   return undefined;
 }
 
 function literalType(value: unknown): string {
-  if (Number.isInteger(value)) return "integer";
-  if (typeof value === "number") return "number";
-  if (value === null) return "null";
+  if (Number.isInteger(value)) {
+    return "integer";
+  }
+  if (typeof value === "number") {
+    return "number";
+  }
+  if (value === null) {
+    return "null";
+  }
   return typeof value;
 }
 
@@ -657,7 +766,9 @@ function convertUnion(branches: unknown[], context: ConvertContext, keyword: "on
 }
 
 function convertAllOf(branches: unknown[], context: ConvertContext): string {
-  const objectBranches = branches.map((branch) => asRecord(branch)).filter((branch): branch is Record<string, unknown> => !!branch);
+  const objectBranches = branches
+    .map((branch) => asRecord(branch))
+    .filter((branch): branch is Record<string, unknown> => !!branch);
   if (objectBranches.length === branches.length && objectBranches.every(isObjectLikeBranch)) {
     const merged: Record<string, unknown> = { type: "object", properties: {}, required: [] };
     const properties = merged.properties as Record<string, unknown>;
@@ -678,7 +789,9 @@ function convertAllOf(branches: unknown[], context: ConvertContext): string {
       }
       if (Array.isArray(branch.required)) {
         for (const item of branch.required) {
-          if (typeof item === "string" && !required.includes(item)) required.push(item);
+          if (typeof item === "string" && !required.includes(item)) {
+            required.push(item);
+          }
         }
       }
     }
@@ -698,7 +811,12 @@ function isObjectLikeBranch(schema: Record<string, unknown>): boolean {
 function convertRef(ref: string, schema: Record<string, unknown>, context: ConvertContext): string {
   for (const key of Object.keys(schema)) {
     if (key !== "$ref" && key !== "nullable" && !key.startsWith("x-")) {
-      addDiagnostic(context, "unsupported.refSibling", "Sibling keywords next to $ref are not supported.", `${context.path}/${escapePointer(key)}`);
+      addDiagnostic(
+        context,
+        "unsupported.refSibling",
+        "Sibling keywords next to $ref are not supported.",
+        `${context.path}/${escapePointer(key)}`,
+      );
     }
   }
 
@@ -720,15 +838,15 @@ function convertRef(ref: string, schema: Record<string, unknown>, context: Conve
   }
 
   const edge = `${context.componentName ?? ""}->${target}`;
-  const currentOrder = context.componentName
-    ? (context.names.order.get(context.componentName) ?? 0)
-    : 0;
+  const currentOrder = context.componentName ? (context.names.order.get(context.componentName) ?? 0) : 0;
   const targetOrder = context.names.order.get(target) ?? 0;
   let expression =
     context.componentName && (context.cycles.has(edge) || targetOrder > currentOrder)
       ? `z.lazy(() => ${targetName})`
       : targetName;
-  if (schema.nullable === true) expression += ".nullable()";
+  if (schema.nullable === true) {
+    expression += ".nullable()";
+  }
   return expression;
 }
 
@@ -751,7 +869,9 @@ export function findCycleEdges(schemas: SchemaMap): Set<string> {
   const cycleEdges = new Set<string>();
   for (const [from, targets] of graph.entries()) {
     const fromScc = sccId.get(from);
-    if (fromScc === undefined) continue;
+    if (fromScc === undefined) {
+      continue;
+    }
     for (const to of targets) {
       const toScc = sccId.get(to);
       if (toScc === fromScc && (from === to || (sccSize.get(fromScc) ?? 0) > 1)) {
@@ -764,7 +884,9 @@ export function findCycleEdges(schemas: SchemaMap): Set<string> {
 
 export function componentHasCycle(componentName: string, cycles: Set<string>): boolean {
   for (const edge of cycles) {
-    if (edge.startsWith(`${componentName}->`)) return true;
+    if (edge.startsWith(`${componentName}->`)) {
+      return true;
+    }
   }
   return false;
 }
@@ -777,13 +899,18 @@ function collectRefs(schema: unknown): Set<string> {
   const stack: unknown[] = [schema];
   while (stack.length > 0) {
     const object = asRecord(stack.pop());
-    if (!object) continue;
+    if (!object) {
+      continue;
+    }
     if (typeof object.$ref === "string" && object.$ref.startsWith("#/components/schemas/")) {
       refs.add(unescapePointer(object.$ref.slice("#/components/schemas/".length)));
     }
     for (const child of Object.values(object)) {
-      if (Array.isArray(child)) stack.push(...child);
-      else stack.push(child);
+      if (Array.isArray(child)) {
+        stack.push(...child);
+      } else {
+        stack.push(child);
+      }
     }
   }
   return refs;
@@ -801,7 +928,9 @@ function computeStronglyConnectedComponents(graph: Map<string, Set<string>>): Ma
   let nextSccId = 0;
 
   for (const start of graph.keys()) {
-    if (index.has(start)) continue;
+    if (index.has(start)) {
+      continue;
+    }
 
     const work: { node: string; iterator: Iterator<string> }[] = [
       { node: start, iterator: (graph.get(start) ?? new Set<string>()).values() },
@@ -841,7 +970,9 @@ function computeStronglyConnectedComponents(graph: Map<string, Set<string>>): Ma
           const member = stack.pop()!;
           onStack.delete(member);
           sccId.set(member, nextSccId);
-          if (member === frame.node) break;
+          if (member === frame.node) {
+            break;
+          }
         }
         nextSccId += 1;
       }
@@ -851,71 +982,86 @@ function computeStronglyConnectedComponents(graph: Map<string, Set<string>>): Ma
   return sccId;
 }
 
-function applyDefault(
-  expression: string,
-  schema: Record<string, unknown>,
-  context: ConvertContext,
-): string {
-  if (!Object.prototype.hasOwnProperty.call(schema, "default")) return expression;
+function applyDefault(expression: string, schema: Record<string, unknown>, context: ConvertContext): string {
+  if (!Object.hasOwn(schema, "default")) {
+    return expression;
+  }
   const literal = jsonLiteral(schema.default);
   if (literal === undefined) {
     addDiagnostic(context, "unsafe.default", "Default value cannot be emitted safely.", `${context.path}/default`);
     return expression;
   }
   if (!isDefaultCompatible(schema, schema.default)) {
-    addDiagnostic(context, "unsafe.default", "Default value is not compatible with the schema.", `${context.path}/default`);
+    addDiagnostic(
+      context,
+      "unsafe.default",
+      "Default value is not compatible with the schema.",
+      `${context.path}/default`,
+    );
     return expression;
   }
   return `${expression}.default(${literal})`;
 }
 
-function applyConditional(
-  expression: string,
-  schema: Record<string, unknown>,
-  context: ConvertContext,
-): string {
-  if (schema.if === undefined) return expression;
+function applyConditional(expression: string, schema: Record<string, unknown>, context: ConvertContext): string {
+  if (schema.if === undefined) {
+    return expression;
+  }
   context.helpers.add("conditional");
   const ifSchema = convertSchema(schema.if, {
     ...context,
     path: `${context.path}/if`,
     inProperty: false,
   });
-  const thenSchema = schema.then === undefined
-    ? "undefined"
-    : convertSchema(schema.then, { ...context, path: `${context.path}/then`, inProperty: false });
-  const elseSchema = schema.else === undefined
-    ? "undefined"
-    : convertSchema(schema.else, { ...context, path: `${context.path}/else`, inProperty: false });
+  const thenSchema =
+    schema.then === undefined
+      ? "undefined"
+      : convertSchema(schema.then, { ...context, path: `${context.path}/then`, inProperty: false });
+  const elseSchema =
+    schema.else === undefined
+      ? "undefined"
+      : convertSchema(schema.else, { ...context, path: `${context.path}/else`, inProperty: false });
   return `z.unknown().superRefine((value, ctx) => __openapiZodConditional(value, ctx, ${ifSchema}, ${thenSchema}, ${elseSchema})).pipe(${expression})`;
 }
 
 function isDefaultCompatible(schema: Record<string, unknown>, value: unknown): boolean {
-  if (schema.const !== undefined) return jsonLiteral(schema.const) === jsonLiteral(value);
+  if (schema.const !== undefined) {
+    return jsonLiteral(schema.const) === jsonLiteral(value);
+  }
   if (Array.isArray(schema.enum)) {
     return schema.enum.some((item) => jsonLiteral(item) === jsonLiteral(value));
   }
   const typeInfo = normalizeTypeForSignature(schema);
   const types = typeInfo.types.filter((type) => type !== "null");
-  const nullable = Array.isArray(schema.type)
-    ? schema.type.includes("null")
-    : schema.nullable === true;
-  if (value === null) return nullable || types.includes("null");
-  if (types.length === 0) return true;
-  if (types.includes("integer")) return Number.isInteger(value);
-  if (types.includes("number")) return typeof value === "number" && Number.isFinite(value);
-  if (types.includes("string")) return typeof value === "string";
-  if (types.includes("boolean")) return typeof value === "boolean";
-  if (types.includes("array")) return Array.isArray(value);
-  if (types.includes("object")) return !!asRecord(value);
+  const nullable = Array.isArray(schema.type) ? schema.type.includes("null") : schema.nullable === true;
+  if (value === null) {
+    return nullable || types.includes("null");
+  }
+  if (types.length === 0) {
+    return true;
+  }
+  if (types.includes("integer")) {
+    return Number.isInteger(value);
+  }
+  if (types.includes("number")) {
+    return typeof value === "number" && Number.isFinite(value);
+  }
+  if (types.includes("string")) {
+    return typeof value === "string";
+  }
+  if (types.includes("boolean")) {
+    return typeof value === "boolean";
+  }
+  if (types.includes("array")) {
+    return Array.isArray(value);
+  }
+  if (types.includes("object")) {
+    return !!asRecord(value);
+  }
   return true;
 }
 
-function literalExpression(
-  value: unknown,
-  context: ConvertContext,
-  code: "unsafe.literal",
-): string | undefined {
+function literalExpression(value: unknown, context: ConvertContext, code: "unsafe.literal"): string | undefined {
   const literal = jsonLiteral(value);
   if (literal === undefined) {
     addDiagnostic(context, code, "Literal value cannot be emitted safely.", context.path);
@@ -943,12 +1089,7 @@ function regexpExpression(pattern: string, context: ConvertContext, path: string
   }
 }
 
-function addDiagnostic(
-  context: ConvertContext,
-  code: string,
-  message: string,
-  path: string | undefined,
-): void {
+function addDiagnostic(context: ConvertContext, code: string, message: string, path: string | undefined): void {
   context.diagnostics.push(diagnostic(code, message, path, context.options));
 }
 

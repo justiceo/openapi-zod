@@ -1,7 +1,7 @@
 import { readdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { loadOpenApiDocument } from "../src/loader.ts";
 import { convertOpenApiToZod } from "../src/index.ts";
+import { loadOpenApiDocument } from "../src/loader.ts";
 
 const fixturesDir = join("test", "fixtures");
 
@@ -24,7 +24,9 @@ async function main() {
   for (const fixture of fixtures) {
     const dir = join(fixturesDir, fixture);
     const openapiPath = join(dir, "openapi.yaml");
-    if (!(await fileExists(openapiPath))) continue;
+    if (!(await fileExists(openapiPath))) {
+      continue;
+    }
 
     const document = await loadOpenApiDocument(openapiPath);
 
@@ -45,11 +47,7 @@ async function main() {
       await writeFile(join(dir, "expected-client.ts"), clientOutput.contents, "utf8");
     }
 
-    await writeFile(
-      join(dir, "diagnostics.json"),
-      `${JSON.stringify(multiFile.diagnostics, null, 2)}\n`,
-      "utf8",
-    );
+    await writeFile(join(dir, "diagnostics.json"), `${JSON.stringify(multiFile.diagnostics, null, 2)}\n`, "utf8");
 
     console.log(`regenerated ${fixture}`);
   }

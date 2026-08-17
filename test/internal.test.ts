@@ -2,13 +2,20 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import type { ConversionDiagnostic } from "../src/diagnostics.js";
-import type { ConvertContext, SharedContext } from "../src/core.js";
-import { buildNames, escapePointer, jsonLiteral, propertyKey, sanitizeIdentifier, unescapePointer } from "../src/emit.js";
 import { convertParameter, convertResponse } from "../src/components.js";
+import type { ConvertContext, SharedContext } from "../src/core.js";
+import type { ConversionDiagnostic } from "../src/diagnostics.js";
+import {
+  buildNames,
+  escapePointer,
+  jsonLiteral,
+  propertyKey,
+  sanitizeIdentifier,
+  unescapePointer,
+} from "../src/emit.js";
+import { loadOpenApiDocument } from "../src/loader.js";
 import { convertOperations } from "../src/operations.js";
 import { componentHasCycle, convertSchema, findCycleEdges } from "../src/schema.js";
-import { loadOpenApiDocument } from "../src/loader.js";
 
 function shared(diagnostics: ConversionDiagnostic[] = []): SharedContext & { securityNames: Map<string, string> } {
   return {
@@ -49,10 +56,14 @@ function shared(diagnostics: ConversionDiagnostic[] = []): SharedContext & { sec
 describe("internal emit helpers", () => {
   it("sanitizes names and reports collisions deterministically", () => {
     const diagnostics: ConversionDiagnostic[] = [];
-    const names = buildNames(["user-id", "user_id"], {
-      ...shared().options,
-      schemaNameSuffix: "",
-    }, diagnostics);
+    const names = buildNames(
+      ["user-id", "user_id"],
+      {
+        ...shared().options,
+        schemaNameSuffix: "",
+      },
+      diagnostics,
+    );
 
     expect(sanitizeIdentifier("class")).toBe("Schemaclass");
     expect(names.schemaNames.get("user-id")).toBe("userid");
@@ -62,10 +73,10 @@ describe("internal emit helpers", () => {
 
   it("quotes property keys and emits stable JSON literals", () => {
     expect(propertyKey("validName")).toBe("validName");
-    expect(propertyKey("default")).toBe("\"default\"");
+    expect(propertyKey("default")).toBe('"default"');
     expect(escapePointer("a/b~c")).toBe("a~1b~0c");
     expect(unescapePointer("a~1b~0c")).toBe("a/b~c");
-    expect(jsonLiteral({ b: 2, a: true })).toBe("{ \"a\": true, \"b\": 2 }");
+    expect(jsonLiteral({ b: 2, a: true })).toBe('{ "a": true, "b": 2 }');
   });
 });
 
@@ -182,24 +193,27 @@ describe("loader error handling", () => {
 describe("internal OpenAPI conversion helpers", () => {
   it("derives operation names and diagnostics for missing operationId", () => {
     const diagnostics: ConversionDiagnostic[] = [];
-    const result = convertOperations({
-      paths: {
-        "/users/{id}": {
-          get: {
-            parameters: [
-              { name: "id", in: "path", required: true, schema: { type: "string" } },
-            ],
-            responses: { "200": { description: "OK" } },
+    const result = convertOperations(
+      {
+        paths: {
+          "/users/{id}": {
+            get: {
+              parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+              responses: { "200": { description: "OK" } },
+            },
           },
         },
       },
-    }, shared(diagnostics));
+      shared(diagnostics),
+    );
 
     expect(result.exportNames).toEqual(["getUsersIdOperation"]);
-    expect(diagnostics).toContainEqual(expect.objectContaining({
-      code: "ambiguous.operationId",
-      path: "#/paths/~1users~1{id}/get",
-    }));
+    expect(diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "ambiguous.operationId",
+        path: "#/paths/~1users~1{id}/get",
+      }),
+    );
   });
 
   it("reports a missing reusable parameter reference target", () => {
@@ -211,10 +225,12 @@ describe("internal OpenAPI conversion helpers", () => {
     );
 
     expect(result.schema).toBe("z.unknown().optional()");
-    expect(diagnostics).toContainEqual(expect.objectContaining({
-      code: "invalid.ref",
-      path: "#/paths/~1users/get/parameters/0/$ref",
-    }));
+    expect(diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "invalid.ref",
+        path: "#/paths/~1users/get/parameters/0/$ref",
+      }),
+    );
   });
 
   it("reports an external reference on a reusable parameter as unsupported", () => {
@@ -226,25 +242,33 @@ describe("internal OpenAPI conversion helpers", () => {
     );
 
     expect(result.schema).toBe("z.unknown().optional()");
-    expect(diagnostics).toContainEqual(expect.objectContaining({
-      code: "unsupported.externalRef",
-      path: "#/paths/~1users/get/parameters/0/$ref",
-    }));
+    expect(diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "unsupported.externalRef",
+        path: "#/paths/~1users/get/parameters/0/$ref",
+      }),
+    );
   });
 
   it("reports unsupported configured media types in responses", () => {
     const diagnostics: ConversionDiagnostic[] = [];
-    const expression = convertResponse({
-      description: "OK",
-      content: {
-        "text/plain": { schema: { type: "string" } },
+    const expression = convertResponse(
+      {
+        description: "OK",
+        content: {
+          "text/plain": { schema: { type: "string" } },
+        },
       },
-    }, "#/components/responses/Plain", shared(diagnostics));
+      "#/components/responses/Plain",
+      shared(diagnostics),
+    );
 
-    expect(expression).toBe("{\n  description: \"OK\",\n}");
-    expect(diagnostics).toContainEqual(expect.objectContaining({
-      code: "unsupported.mediaType",
-      path: "#/components/responses/Plain/content",
-    }));
+    expect(expression).toBe('{\n  description: "OK",\n}');
+    expect(diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "unsupported.mediaType",
+        path: "#/components/responses/Plain/content",
+      }),
+    );
   });
 });

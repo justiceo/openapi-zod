@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { convertOpenApiToZod } from "./index.js";
 import { loadOpenApiDocument } from "./loader.js";
 
-type CliOptions = {
+interface CliOptions {
   action: "convert";
   input?: string;
   output?: string;
@@ -26,7 +26,7 @@ type CliOptions = {
   includeDefaultValues: boolean;
   failOnWarning: boolean;
   customFormats: Record<string, { module: string; import: string }>;
-};
+}
 
 type ParsedCli = CliOptions | { action: "help" } | { action: "version" };
 
@@ -81,8 +81,12 @@ function requireValue(arg: string, value: string | undefined): string {
 }
 
 function parseArgs(argv: string[]): ParsedCli {
-  if (argv.includes("--help") || argv.includes("-h")) return { action: "help" };
-  if (argv.includes("--version") || argv.includes("-v")) return { action: "version" };
+  if (argv.includes("--help") || argv.includes("-h")) {
+    return { action: "help" };
+  }
+  if (argv.includes("--version") || argv.includes("-v")) {
+    return { action: "version" };
+  }
 
   const options: CliOptions = {
     action: "convert",
@@ -192,8 +196,12 @@ function parseArgs(argv: string[]): ParsedCli {
     }
   }
 
-  if (!options.input) throw new Error("--input is required");
-  if (!options.output) throw new Error("--output is required");
+  if (!options.input) {
+    throw new Error("--input is required");
+  }
+  if (!options.output) {
+    throw new Error("--output is required");
+  }
 
   return options;
 }
@@ -240,9 +248,7 @@ async function main(): Promise<void> {
   );
 
   for (const item of result.diagnostics) {
-    process.stderr.write(
-      `${item.level} ${item.code} ${item.path ?? "-"} ${item.message}\n`,
-    );
+    process.stderr.write(`${item.level} ${item.code} ${item.path ?? "-"} ${item.message}\n`);
   }
 
   const hasErrors = result.diagnostics.some((item) => item.level === "error");

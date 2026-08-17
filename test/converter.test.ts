@@ -1,11 +1,11 @@
+import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
-import { loadOpenApiDocument } from "../src/loader.js";
 import { convertOpenApiToZod } from "../src/index.js";
+import { loadOpenApiDocument } from "../src/loader.js";
 
 const execFileAsync = promisify(execFile);
 // todo: use the pattern in scripts/generate-fixtures.mjs which discovers fixtures by scanning test/fixtures/*, for consistency.
@@ -40,12 +40,10 @@ async function readFixture(name: string, file: string): Promise<string> {
 describe("fixture conversion", () => {
   for (const fixture of fixtures) {
     it(`matches ${fixture} in multi-file mode`, async () => {
-      const document = await loadOpenApiDocument(
-        join("test", "fixtures", fixture, "openapi.yaml"),
-      );
-      const expectedSchema = (await readFixture(fixture, "expected-schema.ts")).trimEnd() + "\n";
-      const expectedOperations = (await readFixture(fixture, "expected-operations.ts")).trimEnd() + "\n";
-      const expectedRouter = (await readFixture(fixture, "expected-router.ts")).trimEnd() + "\n";
+      const document = await loadOpenApiDocument(join("test", "fixtures", fixture, "openapi.yaml"));
+      const expectedSchema = `${(await readFixture(fixture, "expected-schema.ts")).trimEnd()}\n`;
+      const expectedOperations = `${(await readFixture(fixture, "expected-operations.ts")).trimEnd()}\n`;
+      const expectedRouter = `${(await readFixture(fixture, "expected-router.ts")).trimEnd()}\n`;
       const diagnostics = JSON.parse(await readFixture(fixture, "diagnostics.json"));
 
       const result = convertOpenApiToZod(document);
@@ -59,10 +57,8 @@ describe("fixture conversion", () => {
     });
 
     it(`matches ${fixture} in single-file mode`, async () => {
-      const document = await loadOpenApiDocument(
-        join("test", "fixtures", fixture, "openapi.yaml"),
-      );
-      const expected = (await readFixture(fixture, "expected.ts")).trimEnd() + "\n";
+      const document = await loadOpenApiDocument(join("test", "fixtures", fixture, "openapi.yaml"));
+      const expected = `${(await readFixture(fixture, "expected.ts")).trimEnd()}\n`;
       const diagnostics = JSON.parse(await readFixture(fixture, "diagnostics.json"));
 
       const result = convertOpenApiToZod(document, { outputMode: "singleFile" });
@@ -75,10 +71,8 @@ describe("fixture conversion", () => {
   const clientFixtures = ["operations", "petstore"] as const;
   for (const fixture of clientFixtures) {
     it(`matches ${fixture} api/client.ts when includeClient is true`, async () => {
-      const document = await loadOpenApiDocument(
-        join("test", "fixtures", fixture, "openapi.yaml"),
-      );
-      const expectedClient = (await readFixture(fixture, "expected-client.ts")).trimEnd() + "\n";
+      const document = await loadOpenApiDocument(join("test", "fixtures", fixture, "openapi.yaml"));
+      const expectedClient = `${(await readFixture(fixture, "expected-client.ts")).trimEnd()}\n`;
 
       const result = convertOpenApiToZod(document, { includeClient: true });
 
@@ -88,9 +82,7 @@ describe("fixture conversion", () => {
   }
 
   it("omits api/client.ts unless includeClient is true", async () => {
-    const document = await loadOpenApiDocument(
-      join("test", "fixtures", "operations", "openapi.yaml"),
-    );
+    const document = await loadOpenApiDocument(join("test", "fixtures", "operations", "openapi.yaml"));
 
     const result = convertOpenApiToZod(document);
 
@@ -119,22 +111,20 @@ describe("fixture conversion", () => {
   });
 
   it("promotes unsupported diagnostics when requested", async () => {
-    const document = await loadOpenApiDocument(
-      join("test", "fixtures", "diagnostics", "openapi.yaml"),
-    );
+    const document = await loadOpenApiDocument(join("test", "fixtures", "diagnostics", "openapi.yaml"));
 
     const result = convertOpenApiToZod(document, { onUnsupported: "error" });
 
-    expect(result.diagnostics).toContainEqual(expect.objectContaining({
-      level: "error",
-      code: "unsupported.mediaType",
-    }));
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        level: "error",
+        code: "unsupported.mediaType",
+      }),
+    );
   });
 
   it("omits generated default values unless requested", async () => {
-    const document = await loadOpenApiDocument(
-      join("test", "fixtures", "operations", "openapi.yaml"),
-    );
+    const document = await loadOpenApiDocument(join("test", "fixtures", "operations", "openapi.yaml"));
 
     const compact = convertOpenApiToZod(document);
     const verbose = convertOpenApiToZod(document, { includeDefaultValues: true });
@@ -151,9 +141,7 @@ describe("fixture conversion", () => {
 
   it("matches library output from the CLI", async () => {
     const fixture = "primitives";
-    const document = await loadOpenApiDocument(
-      join("test", "fixtures", fixture, "openapi.yaml"),
-    );
+    const document = await loadOpenApiDocument(join("test", "fixtures", fixture, "openapi.yaml"));
     const expected = convertOpenApiToZod(document);
     const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
 
@@ -176,9 +164,7 @@ describe("fixture conversion", () => {
   });
 
   it("prefixes generated output with an auto-generated banner", async () => {
-    const document = await loadOpenApiDocument(
-      join("test", "fixtures", "primitives", "openapi.yaml"),
-    );
+    const document = await loadOpenApiDocument(join("test", "fixtures", "primitives", "openapi.yaml"));
     const result = convertOpenApiToZod(document);
     for (const output of result.outputs) {
       expect(output.contents.startsWith("// AUTO-GENERATED FILE. DO NOT EDIT.\n\n")).toBe(true);
@@ -291,16 +277,18 @@ components:
   });
 
   it("rejects a malformed --custom-format value", async () => {
-    await expect(execFileAsync("npx", [
-      "tsx",
-      "src/cli.ts",
-      "--input",
-      join("test", "fixtures", "empty", "openapi.yaml"),
-      "--output",
-      "generated",
-      "--custom-format",
-      "not-valid",
-    ])).rejects.toMatchObject({
+    await expect(
+      execFileAsync("npx", [
+        "tsx",
+        "src/cli.ts",
+        "--input",
+        join("test", "fixtures", "empty", "openapi.yaml"),
+        "--output",
+        "generated",
+        "--custom-format",
+        "not-valid",
+      ]),
+    ).rejects.toMatchObject({
       code: 1,
       stderr: expect.stringContaining("--custom-format must be name=module#import"),
     });
@@ -315,44 +303,30 @@ components:
   });
 
   it("reports missing CLI flag values", async () => {
-    await expect(execFileAsync("npx", [
-      "tsx",
-      "src/cli.ts",
-      "--input",
-      "--output",
-      "generated",
-    ])).rejects.toMatchObject({
-      code: 1,
-      stderr: expect.stringContaining("--input requires a value"),
-    });
+    await expect(execFileAsync("npx", ["tsx", "src/cli.ts", "--input", "--output", "generated"])).rejects.toMatchObject(
+      {
+        code: 1,
+        stderr: expect.stringContaining("--input requires a value"),
+      },
+    );
   });
 
   it("reports unknown CLI arguments", async () => {
-    await expect(execFileAsync("npx", [
-      "tsx",
-      "src/cli.ts",
-      "--wat",
-    ])).rejects.toMatchObject({
+    await expect(execFileAsync("npx", ["tsx", "src/cli.ts", "--wat"])).rejects.toMatchObject({
       code: 1,
       stderr: expect.stringContaining("Unknown argument: --wat"),
     });
   });
 
   it("reports missing required CLI input and output", async () => {
-    await expect(execFileAsync("npx", [
-      "tsx",
-      "src/cli.ts",
-    ])).rejects.toMatchObject({
+    await expect(execFileAsync("npx", ["tsx", "src/cli.ts"])).rejects.toMatchObject({
       code: 1,
       stderr: expect.stringContaining("--input is required"),
     });
 
-    await expect(execFileAsync("npx", [
-      "tsx",
-      "src/cli.ts",
-      "--input",
-      join("test", "fixtures", "empty", "openapi.yaml"),
-    ])).rejects.toMatchObject({
+    await expect(
+      execFileAsync("npx", ["tsx", "src/cli.ts", "--input", join("test", "fixtures", "empty", "openapi.yaml")]),
+    ).rejects.toMatchObject({
       code: 1,
       stderr: expect.stringContaining("--output is required"),
     });
@@ -362,15 +336,17 @@ components:
     const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
 
     try {
-      await expect(execFileAsync("npx", [
-        "tsx",
-        "src/cli.ts",
-        "--input",
-        join("test", "fixtures", "empty", "openapi.yaml"),
-        "--output",
-        dir,
-        "--fail-on-warning",
-      ])).rejects.toMatchObject({
+      await expect(
+        execFileAsync("npx", [
+          "tsx",
+          "src/cli.ts",
+          "--input",
+          join("test", "fixtures", "empty", "openapi.yaml"),
+          "--output",
+          dir,
+          "--fail-on-warning",
+        ]),
+      ).rejects.toMatchObject({
         code: 1,
       });
     } finally {
@@ -384,9 +360,7 @@ components:
 
     try {
       for (const fixture of fixtures) {
-        const document = await loadOpenApiDocument(
-          join("test", "fixtures", fixture, "openapi.yaml"),
-        );
+        const document = await loadOpenApiDocument(join("test", "fixtures", fixture, "openapi.yaml"));
         const result = convertOpenApiToZod(document);
         for (const output of result.outputs) {
           const generatedFile = join(dir, fixture, output.path);
@@ -515,7 +489,9 @@ components:
 
     try {
       await writeFile(generatedFile, result.outputs[0].contents, "utf8");
-      await writeFile(runnerFile, `
+      await writeFile(
+        runnerFile,
+        `
         import { getRoute } from "./routes.js";
 
         const userId = "123e4567-e89b-12d3-a456-426614174000";
@@ -577,7 +553,9 @@ components:
           json: async () => { throw new Error("bad json"); },
         });
         if (badBody.success || badBody.error.code !== "body") throw new Error("body parser failure did not return body error");
-      `, "utf8");
+      `,
+        "utf8",
+      );
 
       await execFileAsync("npx", ["tsx", runnerFile]);
     } finally {
@@ -602,9 +580,7 @@ components:
         "/users/{userId}/profile": {
           post: {
             operationId: "updateProfile",
-            parameters: [
-              { name: "userId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
-            ],
+            parameters: [{ name: "userId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
             requestBody: {
               required: true,
               content: { "application/json": { schema: { $ref: "#/components/schemas/Profile" } } },
@@ -630,7 +606,9 @@ components:
         await writeFile(filePath, output.contents, "utf8");
       }
       const runnerFile = join(dir, "run.ts");
-      await writeFile(runnerFile, `
+      await writeFile(
+        runnerFile,
+        `
         import { getRoute } from "./api/router.js";
         import { ProfileSchema } from "./api/schema.js";
 
@@ -655,7 +633,9 @@ components:
           body: {},
         });
         if (invalid.success) throw new Error("multi-file body validation did not reject missing field");
-      `, "utf8");
+      `,
+        "utf8",
+      );
 
       await execFileAsync("npx", ["tsx", runnerFile]);
     } finally {
@@ -664,9 +644,7 @@ components:
   });
 
   it("runtime-validates helper-backed advanced schemas", async () => {
-    const document = await loadOpenApiDocument(
-      join("test", "fixtures", "advanced", "openapi.yaml"),
-    );
+    const document = await loadOpenApiDocument(join("test", "fixtures", "advanced", "openapi.yaml"));
     const result = convertOpenApiToZod(document, {
       outputMode: "singleFile",
       outputFileName: "advanced.ts",
@@ -677,7 +655,9 @@ components:
 
     try {
       await writeFile(generatedFile, result.outputs[0].contents, "utf8");
-      await writeFile(runnerFile, `
+      await writeFile(
+        runnerFile,
+        `
         import {
           ConditionalValueSchema,
           ContactChoiceSchema,
@@ -702,7 +682,9 @@ components:
         if (checks.some((check) => !check)) {
           throw new Error("Advanced helper validation failed");
         }
-      `, "utf8");
+      `,
+        "utf8",
+      );
 
       await execFileAsync("npx", ["tsx", runnerFile]);
     } finally {
@@ -711,9 +693,7 @@ components:
   });
 
   it("runtime-validates real-world polymorphism helpers", async () => {
-    const document = await loadOpenApiDocument(
-      join("test", "fixtures", "polymorphism-realworld", "openapi.yaml"),
-    );
+    const document = await loadOpenApiDocument(join("test", "fixtures", "polymorphism-realworld", "openapi.yaml"));
     const result = convertOpenApiToZod(document, {
       outputMode: "singleFile",
       outputFileName: "polymorphism.ts",
@@ -724,7 +704,9 @@ components:
 
     try {
       await writeFile(generatedFile, result.outputs[0].contents, "utf8");
-      await writeFile(runnerFile, `
+      await writeFile(
+        runnerFile,
+        `
         import { EventSchema, SearchResultSchema } from "./polymorphism.js";
 
         const checks = [
@@ -740,7 +722,9 @@ components:
         if (checks.some((check) => !check)) {
           throw new Error("Polymorphism helper validation failed");
         }
-      `, "utf8");
+      `,
+        "utf8",
+      );
 
       await execFileAsync("npx", ["tsx", runnerFile]);
     } finally {
@@ -793,9 +777,7 @@ describe("custom formats", () => {
     const contents = result.outputs[0].contents;
 
     expect(contents).toContain('import { phoneNumberFormat } from "../../utils/phone.js";');
-    expect(contents).toContain(
-      'z.string().trim().transform((value, ctx) => phoneNumberFormat(value, ctx))',
-    );
+    expect(contents).toContain("z.string().trim().transform((value, ctx) => phoneNumberFormat(value, ctx))");
     expect(result.diagnostics).not.toContainEqual(
       expect.objectContaining({ path: "#/components/schemas/Contact/properties/phone/format" }),
     );
@@ -808,9 +790,7 @@ describe("custom formats", () => {
     expect(contents).toContain(
       'z.string().transform((value, ctx) => domainNameFormat(value, ctx, { "rejectSubdomains": true }))',
     );
-    expect(contents).toContain(
-      'z.string().transform((value, ctx) => domainNameFormat(value, ctx))',
-    );
+    expect(contents).toContain("z.string().transform((value, ctx) => domainNameFormat(value, ctx))");
   });
 
   it("deduplicates the import for a custom format used by multiple fields", () => {
@@ -842,14 +822,21 @@ describe("custom formats", () => {
     const result = convertOpenApiToZod(document, { outputMode: "singleFile" });
 
     expect(result.diagnostics).toContainEqual(
-      expect.objectContaining({ code: "unsupported.format", path: "#/components/schemas/Contact/properties/phone/format" }),
+      expect.objectContaining({
+        code: "unsupported.format",
+        path: "#/components/schemas/Contact/properties/phone/format",
+      }),
     );
   });
 
   it("runtime-validates a registered custom format end to end", async () => {
     const result = convertOpenApiToZod(
       { ...document, components: { schemas: { Contact: document.components.schemas.Contact } } },
-      { outputMode: "singleFile", outputFileName: "contact.ts", customFormats: { "phone-number": { module: "./utils/phone.js", import: "phoneNumberFormat" } } },
+      {
+        outputMode: "singleFile",
+        outputFileName: "contact.ts",
+        customFormats: { "phone-number": { module: "./utils/phone.js", import: "phoneNumberFormat" } },
+      },
     );
     const dir = await mkdtemp(join(process.cwd(), ".generated-"));
     const utilsDir = join(dir, "utils");

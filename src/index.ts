@@ -1,25 +1,32 @@
-import { diagnostic, type ConversionDiagnostic } from "./diagnostics.js";
+import { convertClientFunctions } from "./client.js";
+import { clientHelperCode } from "./client-helper.js";
 import { convertReusableComponents, metadataExpression } from "./components.js";
-import { getSchemas, isSupportedOpenApiVersion, openApiDialect, resolveOptions, type ConvertOpenApiToZodOptions, type HelperName } from "./core.js";
+import {
+  type ConvertOpenApiToZodOptions,
+  getSchemas,
+  type HelperName,
+  isSupportedOpenApiVersion,
+  openApiDialect,
+  resolveOptions,
+} from "./core.js";
+import { type ConversionDiagnostic, diagnostic } from "./diagnostics.js";
 import { asRecord, buildNames, customFormatImportLines, escapePointer, helperCode, usedIdentifiers } from "./emit.js";
 import { convertOperations } from "./operations.js";
 import { routeHelperCode } from "./route-helper.js";
-import { clientHelperCode } from "./client-helper.js";
-import { convertClientFunctions } from "./client.js";
 import { componentHasCycle, convertSchema, findCycleEdges } from "./schema.js";
 
-export type { ConversionDiagnostic } from "./diagnostics.js";
 export type { ConvertOpenApiToZodOptions, CustomFormat } from "./core.js";
+export type { ConversionDiagnostic } from "./diagnostics.js";
 
-export type GeneratedOutput = {
+export interface GeneratedOutput {
   path: string;
   contents: string;
-};
+}
 
-export type ConversionResult = {
+export interface ConversionResult {
   outputs: GeneratedOutput[];
   diagnostics: ConversionDiagnostic[];
-};
+}
 
 const generatedBanner = "// AUTO-GENERATED FILE. DO NOT EDIT.";
 
@@ -35,10 +42,7 @@ const helperExportNames = [
   "__openapiZodDependentSchemas",
 ];
 
-export function convertOpenApiToZod(
-  document: unknown,
-  options: ConvertOpenApiToZodOptions = {},
-): ConversionResult {
+export function convertOpenApiToZod(document: unknown, options: ConvertOpenApiToZodOptions = {}): ConversionResult {
   const resolved = resolveOptions(options);
   const diagnostics: ConversionDiagnostic[] = [];
   const documentObject = asRecord(document);
@@ -58,12 +62,7 @@ export function convertOpenApiToZod(
   const schemas = getSchemas(documentObject);
   if (Object.keys(schemas).length === 0) {
     diagnostics.push(
-      diagnostic(
-        "empty.componentsSchemas",
-        "No component schemas were found.",
-        "#/components/schemas",
-        resolved,
-      ),
+      diagnostic("empty.componentsSchemas", "No component schemas were found.", "#/components/schemas", resolved),
     );
   }
   const paths = asRecord(documentObject?.paths) ?? {};
@@ -104,9 +103,7 @@ export function convertOpenApiToZod(
     const annotation = componentHasCycle(componentName, cycles) ? ": z.ZodTypeAny" : "";
     schemaLines.push(`export const ${schemaName}${annotation} = ${expression};`);
     if (resolved.includeInferredTypes) {
-      schemaLines.push(
-        `export type ${names.typeNames.get(componentName)!} = z.infer<typeof ${schemaName}>;`,
-      );
+      schemaLines.push(`export type ${names.typeNames.get(componentName)!} = z.infer<typeof ${schemaName}>;`);
     }
   }
 
@@ -158,7 +155,9 @@ export function convertOpenApiToZod(
     }
 
     const customFormatLines = customFormatImportLines(resolved.customFormats, customFormatsUsed, lines.join("\n"));
-    if (customFormatLines.length > 0) lines.splice(1, 0, ...customFormatLines);
+    if (customFormatLines.length > 0) {
+      lines.splice(1, 0, ...customFormatLines);
+    }
 
     return {
       outputs: [
@@ -172,10 +171,18 @@ export function convertOpenApiToZod(
   }
 
   const schemaOutputLines = ['import * as z from "zod";'];
-  if (helpers.size > 0) schemaOutputLines.push(...helperCode(helpers, true));
+  if (helpers.size > 0) {
+    schemaOutputLines.push(...helperCode(helpers, true));
+  }
   schemaOutputLines.push(...schemaLines);
-  const schemaCustomFormatLines = customFormatImportLines(resolved.customFormats, customFormatsUsed, schemaLines.join("\n"));
-  if (schemaCustomFormatLines.length > 0) schemaOutputLines.splice(1, 0, ...schemaCustomFormatLines);
+  const schemaCustomFormatLines = customFormatImportLines(
+    resolved.customFormats,
+    customFormatsUsed,
+    schemaLines.join("\n"),
+  );
+  if (schemaCustomFormatLines.length > 0) {
+    schemaOutputLines.splice(1, 0, ...schemaCustomFormatLines);
+  }
 
   const schemaExportNames = [
     ...names.schemaNames.values(),
@@ -191,7 +198,11 @@ export function convertOpenApiToZod(
   if (operationsImports.length > 0) {
     operationsOutputLines.push(`import { ${operationsImports.join(", ")} } from "./schema.js";`);
   }
-  const operationsCustomFormatLines = customFormatImportLines(resolved.customFormats, customFormatsUsed, operationsText);
+  const operationsCustomFormatLines = customFormatImportLines(
+    resolved.customFormats,
+    customFormatsUsed,
+    operationsText,
+  );
   operationsOutputLines.push(...operationsCustomFormatLines);
   operationsOutputLines.push(...operations.lines);
 

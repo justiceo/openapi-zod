@@ -386,10 +386,7 @@ let lastGoodOutputs = [];
 let activeTabPath = null;
 
 function escapeHtml(value) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
+  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
 function span(className, value) {
@@ -407,7 +404,9 @@ function highlightCode(source, rules) {
     for (const rule of rules) {
       rule.pattern.lastIndex = index;
       const match = rule.pattern.exec(source);
-      if (!match) continue;
+      if (!match) {
+        continue;
+      }
       if (!nextMatch || match.index < nextMatch.index) {
         nextMatch = match;
         nextRule = rule;
@@ -423,9 +422,7 @@ function highlightCode(source, rules) {
       output += escapeHtml(source.slice(index, nextMatch.index));
     }
 
-    output += nextRule.render
-      ? nextRule.render(nextMatch)
-      : span(nextRule.className, escapeHtml(nextMatch[0]));
+    output += nextRule.render ? nextRule.render(nextMatch) : span(nextRule.className, escapeHtml(nextMatch[0]));
     index = nextMatch.index + nextMatch[0].length;
   }
 
@@ -438,8 +435,7 @@ function highlightYaml(source) {
     { pattern: /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g, className: "token-string" },
     {
       pattern: /^(\s*)([^:\n]+)(:)/gm,
-      render: (match) =>
-        `${escapeHtml(match[1])}${span("token-key", escapeHtml(match[2]))}${escapeHtml(match[3])}`,
+      render: (match) => `${escapeHtml(match[1])}${span("token-key", escapeHtml(match[2]))}${escapeHtml(match[3])}`,
     },
     { pattern: /\b(true|false|null)\b/g, className: "token-keyword" },
     { pattern: /\b-?\d+(?:\.\d+)?\b/g, className: "token-number" },
@@ -451,8 +447,7 @@ function highlightTypeScript(source) {
     { pattern: /\/\/[^\n]*/g, className: "token-comment" },
     { pattern: /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/g, className: "token-string" },
     {
-      pattern:
-        /\b(import|from|export|const|type|as|return|function|if|else|true|false|null|undefined)\b/g,
+      pattern: /\b(import|from|export|const|type|as|return|function|if|else|true|false|null|undefined)\b/g,
       className: "token-keyword",
     },
     {
@@ -473,7 +468,9 @@ function renderResult(value) {
 }
 
 function pickActiveIndex(outputs) {
-  if (outputs.length === 0) return 0;
+  if (outputs.length === 0) {
+    return 0;
+  }
   const index = outputs.findIndex((item) => item.path === activeTabPath);
   return index === -1 ? 0 : index;
 }
@@ -482,7 +479,9 @@ function renderTabs(outputs, activeIndex) {
   outputTabs.innerHTML = "";
   const showTabs = multiFileToggle.checked && outputs.length > 1;
   outputTabs.hidden = !showTabs;
-  if (!showTabs) return;
+  if (!showTabs) {
+    return;
+  }
 
   for (const [index, output] of outputs.entries()) {
     const tab = document.createElement("button");
@@ -519,13 +518,19 @@ function setDirtyState() {
 }
 
 function diagnosticSummary(diagnostics) {
-  if (diagnostics.length === 0) return "Converted successfully.";
+  if (diagnostics.length === 0) {
+    return "Converted successfully.";
+  }
 
   const errors = diagnostics.filter((item) => item.level === "error").length;
   const warnings = diagnostics.filter((item) => item.level === "warning").length;
   const parts = [];
-  if (errors > 0) parts.push(`${errors} error${errors === 1 ? "" : "s"}`);
-  if (warnings > 0) parts.push(`${warnings} warning${warnings === 1 ? "" : "s"}`);
+  if (errors > 0) {
+    parts.push(`${errors} error${errors === 1 ? "" : "s"}`);
+  }
+  if (warnings > 0) {
+    parts.push(`${warnings} warning${warnings === 1 ? "" : "s"}`);
+  }
   return `Converted with ${parts.join(" and ")}.`;
 }
 
@@ -539,7 +544,10 @@ function convertSource() {
     lastConvertedSource = sourceInput.value;
     lastGoodOutputs = result.outputs;
     showOutputs(result.outputs);
-    setStatus(diagnosticSummary(result.diagnostics), result.diagnostics.some((item) => item.level === "error"));
+    setStatus(
+      diagnosticSummary(result.diagnostics),
+      result.diagnostics.some((item) => item.level === "error"),
+    );
     setDirtyState();
   } catch (error) {
     showOutputs(lastGoodOutputs);

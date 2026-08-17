@@ -3,10 +3,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { describe, expect, it, vi } from "vitest";
-import { loadOpenApiDocument } from "../src/loader.js";
 import { convertOpenApiToZod } from "../src/index.js";
+import { loadOpenApiDocument } from "../src/loader.js";
 
-type GeneratedClientModule = {
+interface GeneratedClientModule {
   getUser: (
     config: { baseUrl: string; fetch: typeof fetch },
     input?: unknown,
@@ -16,12 +16,10 @@ type GeneratedClientModule = {
     config: { baseUrl: string; fetch: typeof fetch },
     input?: unknown,
   ) => Promise<{ success: boolean; status: number; data: unknown; issues?: unknown }>;
-};
+}
 
 async function loadGeneratedClient(): Promise<GeneratedClientModule> {
-  const document = await loadOpenApiDocument(
-    join("test", "fixtures", "operations", "openapi.yaml"),
-  );
+  const document = await loadOpenApiDocument(join("test", "fixtures", "operations", "openapi.yaml"));
   const result = convertOpenApiToZod(document, { outputMode: "singleFile", includeClient: true });
   const dir = await mkdtemp(join(tmpdir(), "openapi-zod-client-"));
   const file = join(dir, "generated-client.mts");
@@ -33,14 +31,12 @@ describe("generated client SDK (runtime)", () => {
   it("builds the URL/query/headers and validates a successful response", async () => {
     const { getUser } = await loadGeneratedClient();
     const fetchMock = vi.fn(async (url: string, init: RequestInit) => {
-      expect(url).toBe(
-        "https://api.example.test/users/3fa85f64-5717-4562-b3fc-2c963f66afa6?includePosts=true",
-      );
+      expect(url).toBe("https://api.example.test/users/3fa85f64-5717-4562-b3fc-2c963f66afa6?includePosts=true");
       expect((init.headers as Record<string, string>)["x-request-id"]).toBe("abc");
-      return new Response(
-        JSON.stringify({ id: "3fa85f64-5717-4562-b3fc-2c963f66afa6", email: "a@example.com" }),
-        { status: 200, headers: { "content-type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ id: "3fa85f64-5717-4562-b3fc-2c963f66afa6", email: "a@example.com" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
     });
 
     const result = await getUser(
@@ -86,11 +82,12 @@ describe("generated client SDK (runtime)", () => {
 
   it("reports a validation failure when the response does not match its schema", async () => {
     const { getUser } = await loadGeneratedClient();
-    const fetchMock = vi.fn(async () =>
-      new Response(JSON.stringify({ id: "not-a-uuid" }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }),
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ id: "not-a-uuid" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
     );
 
     const result = await getUser(
@@ -106,11 +103,12 @@ describe("generated client SDK (runtime)", () => {
 
   it("falls back to the default response schema for unmatched statuses", async () => {
     const { getUser } = await loadGeneratedClient();
-    const fetchMock = vi.fn(async () =>
-      new Response(JSON.stringify({ message: "boom" }), {
-        status: 500,
-        headers: { "content-type": "application/json" },
-      }),
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ message: "boom" }), {
+          status: 500,
+          headers: { "content-type": "application/json" },
+        }),
     );
 
     const result = await getUser(
