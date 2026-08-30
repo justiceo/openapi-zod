@@ -145,6 +145,12 @@ convert(): ConvertResult | undefined { ... }
 - Changes to the public API surface (`src/index.ts` exports, the CLI's flags
   in `src/cli.ts`) are breaking-change candidates; flag them explicitly and
   check whether they need a CHANGELOG entry.
+- `.github/workflows/publish.yml` auto-publishes a patch release on every
+  push to `main` that touches `src/`. If this change is a new feature
+  (`feat:`) or breaking (`!`/`BREAKING CHANGE:`), flag that `version` in
+  `package.json` needs a manual minor/major bump in this PR — the workflow
+  only ever bumps patch on its own, and takes a `package.json` version
+  already ahead of the latest tag as-is instead of adding to it.
 - Review every line of the change diligently — you are the final gate of
   quality, maintainability, and security for this code.
 - If, in the course of review, you identify an issue unrelated to the change
