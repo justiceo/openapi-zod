@@ -378,8 +378,7 @@ components:
         }
       }
 
-      await execFileAsync("npx", [
-        "tsc",
+      await execFileAsync(join(process.cwd(), "node_modules", ".bin", "tsc"), [
         "--noEmit",
         "--strict",
         "--target",
