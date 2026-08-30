@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { convertOpenApiToZod } from "../src/index.js";
 import { loadOpenApiDocument } from "../src/loader.js";
 
@@ -93,8 +93,7 @@ describe("fixture conversion", () => {
     const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
 
     try {
-      await execFileAsync("npx", [
-        "tsx",
+      await execFileAsync("bun", [
         "src/cli.ts",
         "--input",
         join("test", "fixtures", "operations", "openapi.yaml"),
@@ -146,8 +145,7 @@ describe("fixture conversion", () => {
     const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
 
     try {
-      await execFileAsync("npx", [
-        "tsx",
+      await execFileAsync("bun", [
         "src/cli.ts",
         "--input",
         join("test", "fixtures", fixture, "openapi.yaml"),
@@ -175,8 +173,7 @@ describe("fixture conversion", () => {
     const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
 
     try {
-      await execFileAsync("npx", [
-        "tsx",
+      await execFileAsync("bun", [
         "src/cli.ts",
         "--input",
         join("test", "fixtures", "reusable", "openapi.yaml"),
@@ -206,8 +203,7 @@ describe("fixture conversion", () => {
     const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
 
     try {
-      await execFileAsync("npx", [
-        "tsx",
+      await execFileAsync("bun", [
         "src/cli.ts",
         "--input",
         join("test", "fixtures", "operations", "openapi.yaml"),
@@ -226,7 +222,7 @@ describe("fixture conversion", () => {
   });
 
   it("prints CLI help", async () => {
-    const result = await execFileAsync("npx", ["tsx", "src/cli.ts", "--help"]);
+    const result = await execFileAsync("bun", ["src/cli.ts", "--help"]);
 
     expect(result.stdout).toContain("Usage: openapi-zod --input <path> --output <dir>");
     expect(result.stdout).toContain("--include-default-values");
@@ -257,8 +253,7 @@ components:
 `,
         "utf8",
       );
-      await execFileAsync("npx", [
-        "tsx",
+      await execFileAsync("bun", [
         "src/cli.ts",
         "--input",
         inputFile,
@@ -278,8 +273,7 @@ components:
 
   it("rejects a malformed --custom-format value", async () => {
     await expect(
-      execFileAsync("npx", [
-        "tsx",
+      execFileAsync("bun", [
         "src/cli.ts",
         "--input",
         join("test", "fixtures", "empty", "openapi.yaml"),
@@ -296,36 +290,34 @@ components:
 
   it("prints CLI version", async () => {
     const packageJson = JSON.parse(await readFile("package.json", "utf8"));
-    const result = await execFileAsync("npx", ["tsx", "src/cli.ts", "--version"]);
+    const result = await execFileAsync("bun", ["src/cli.ts", "--version"]);
 
     expect(result.stdout.trim()).toBe(packageJson.version);
     expect(result.stderr).toBe("");
   });
 
   it("reports missing CLI flag values", async () => {
-    await expect(execFileAsync("npx", ["tsx", "src/cli.ts", "--input", "--output", "generated"])).rejects.toMatchObject(
-      {
-        code: 1,
-        stderr: expect.stringContaining("--input requires a value"),
-      },
-    );
+    await expect(execFileAsync("bun", ["src/cli.ts", "--input", "--output", "generated"])).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining("--input requires a value"),
+    });
   });
 
   it("reports unknown CLI arguments", async () => {
-    await expect(execFileAsync("npx", ["tsx", "src/cli.ts", "--wat"])).rejects.toMatchObject({
+    await expect(execFileAsync("bun", ["src/cli.ts", "--wat"])).rejects.toMatchObject({
       code: 1,
       stderr: expect.stringContaining("Unknown argument: --wat"),
     });
   });
 
   it("reports missing required CLI input and output", async () => {
-    await expect(execFileAsync("npx", ["tsx", "src/cli.ts"])).rejects.toMatchObject({
+    await expect(execFileAsync("bun", ["src/cli.ts"])).rejects.toMatchObject({
       code: 1,
       stderr: expect.stringContaining("--input is required"),
     });
 
     await expect(
-      execFileAsync("npx", ["tsx", "src/cli.ts", "--input", join("test", "fixtures", "empty", "openapi.yaml")]),
+      execFileAsync("bun", ["src/cli.ts", "--input", join("test", "fixtures", "empty", "openapi.yaml")]),
     ).rejects.toMatchObject({
       code: 1,
       stderr: expect.stringContaining("--output is required"),
@@ -337,8 +329,7 @@ components:
 
     try {
       await expect(
-        execFileAsync("npx", [
-          "tsx",
+        execFileAsync("bun", [
           "src/cli.ts",
           "--input",
           join("test", "fixtures", "empty", "openapi.yaml"),
@@ -557,7 +548,7 @@ components:
         "utf8",
       );
 
-      await execFileAsync("npx", ["tsx", runnerFile]);
+      await execFileAsync("bun", [runnerFile]);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -637,7 +628,7 @@ components:
         "utf8",
       );
 
-      await execFileAsync("npx", ["tsx", runnerFile]);
+      await execFileAsync("bun", [runnerFile]);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -686,7 +677,7 @@ components:
         "utf8",
       );
 
-      await execFileAsync("npx", ["tsx", runnerFile]);
+      await execFileAsync("bun", [runnerFile]);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -726,7 +717,7 @@ components:
         "utf8",
       );
 
-      await execFileAsync("npx", ["tsx", runnerFile]);
+      await execFileAsync("bun", [runnerFile]);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -873,7 +864,7 @@ describe("custom formats", () => {
         "utf8",
       );
 
-      await execFileAsync("npx", ["tsx", join(dir, "run.ts")]);
+      await execFileAsync("bun", [join(dir, "run.ts")]);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -1045,8 +1036,7 @@ components:
 `,
         "utf8",
       );
-      await execFileAsync("npx", [
-        "tsx",
+      await execFileAsync("bun", [
         "src/cli.ts",
         "--input",
         inputFile,

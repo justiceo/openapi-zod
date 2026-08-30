@@ -10,10 +10,10 @@ repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
 
 echo "[dependency-check] Checking for outdated dependencies..."
-ncu_output="$(npx --yes npm-check-updates 2>&1)"
+ncu_output="$(bunx --yes npm-check-updates 2>&1)"
 
-echo "[dependency-check] Running npm audit..."
-audit_output="$(npm audit 2>&1)"
+echo "[dependency-check] Running bun audit..."
+audit_output="$(bun audit 2>&1)"
 
 ncu_has_diff=true
 if grep -qi "all dependencies match the latest package versions" <<< "$ncu_output"; then
@@ -21,7 +21,7 @@ if grep -qi "all dependencies match the latest package versions" <<< "$ncu_outpu
 fi
 
 audit_has_diff=true
-if grep -qi "found 0 vulnerabilities" <<< "$audit_output"; then
+if grep -qi "no vulnerabilities found" <<< "$audit_output"; then
   audit_has_diff=false
 fi
 
@@ -38,7 +38,7 @@ echo
 echo "npm-check-updates output:"
 echo "$ncu_output"
 echo
-echo "npm audit output:"
+echo "bun audit output:"
 echo "$audit_output"
 echo
 echo "[dependency-check] Consider updating dependencies to address the"

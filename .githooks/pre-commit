@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 # Pre-commit checks: lint, formatting, dead code, unit tests, and an AI
-# review against .claude/review-guidelines.md. Installed via `npm install`
+# review against .claude/review-guidelines.md. Installed via `bun install`
 # (see the "prepare" script in package.json, which runs
 # `git config core.hooksPath .githooks`).
 set -e
 
 echo "[pre-commit] Running lint..."
-npm run lint
+bun run lint
 
 echo "[pre-commit] Checking formatting..."
-npx biome format .
+bunx biome format .
 
 echo "[pre-commit] Checking for dead code..."
-npm run knip
+bun run knip
 
 echo "[pre-commit] Running unit tests..."
-npm test
+bun test
 
 echo "[pre-commit] Running AI review..."
 "$(dirname "$0")/ai-review.sh"

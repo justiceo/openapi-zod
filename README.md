@@ -297,6 +297,6 @@ Releases follow semantic versioning and are recorded in `CHANGELOG.md`.
 1. Update generated behavior, tests, and documentation.
 2. Move relevant `CHANGELOG.md` entries from `Unreleased` to the target version.
 3. Update `package.json` version.
-4. Run `npm run build`, `npm test`, and `npm run pack:dry-run`.
+4. Run `bun run build`, `bun test`, and `bun run pack:dry-run`.
 5. Publish with provenance from the release workflow, or manually with equivalent npm provenance settings.
 

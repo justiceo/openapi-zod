@@ -1,8 +1,7 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "bun:test";
 import { convertOpenApiToZod } from "../src/index.js";
 import { loadOpenApiDocument } from "../src/loader.js";
 
@@ -21,10 +20,14 @@ interface GeneratedClientModule {
 async function loadGeneratedClient(): Promise<GeneratedClientModule> {
   const document = await loadOpenApiDocument(join("test", "fixtures", "operations", "openapi.yaml"));
   const result = convertOpenApiToZod(document, { outputMode: "singleFile", includeClient: true });
-  const dir = await mkdtemp(join(tmpdir(), "openapi-zod-client-"));
+  // Generated inside the project tree (not os.tmpdir()) so the bare "zod" import
+  // below resolves via node_modules when walking up from the file's location.
+  const dir = await mkdtemp(join(process.cwd(), ".generated-client-"));
   const file = join(dir, "generated-client.mts");
   await writeFile(file, result.outputs[0].contents, "utf8");
-  return import(pathToFileURL(file).href) as Promise<GeneratedClientModule>;
+  const generatedModule = (await import(pathToFileURL(file).href)) as GeneratedClientModule;
+  await rm(dir, { recursive: true, force: true });
+  return generatedModule;
 }
 
 describe("generated client SDK (runtime)", () => {
