@@ -1,7 +1,7 @@
 // AUTO-GENERATED FILE. DO NOT EDIT.
 
 import * as z from "zod";
-import { updateProfileOperation } from "./operations.js";
+import { updateProfileOperation } from "./operations";
 
 export const routes = [updateProfileOperation] as const;
 type GeneratedRouteOperation = { method: string; path: string; request?: unknown };

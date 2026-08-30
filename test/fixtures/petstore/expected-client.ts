@@ -1,7 +1,7 @@
 // AUTO-GENERATED FILE. DO NOT EDIT.
 
 import * as z from "zod";
-import { updatePetOperation, addPetOperation, findPetsByStatusOperation, findPetsByTagsOperation, getPetByIdOperation, updatePetWithFormOperation, deletePetOperation, uploadFileOperation, getInventoryOperation, placeOrderOperation, getOrderByIdOperation, deleteOrderOperation, createUserOperation, createUsersWithListInputOperation, loginUserOperation, logoutUserOperation, getUserByNameOperation, updateUserOperation, deleteUserOperation } from "./operations.js";
+import { updatePetOperation, addPetOperation, findPetsByStatusOperation, findPetsByTagsOperation, getPetByIdOperation, updatePetWithFormOperation, deletePetOperation, uploadFileOperation, getInventoryOperation, placeOrderOperation, getOrderByIdOperation, deleteOrderOperation, createUserOperation, createUsersWithListInputOperation, loginUserOperation, logoutUserOperation, getUserByNameOperation, updateUserOperation, deleteUserOperation } from "./operations";
 export type ClientHeaders = Record<string, string>;
 export type ClientTokenProvider = string | (() => string | Promise<string>);
 export type ClientConfig = {
@@ -20,7 +20,9 @@ export type ClientResultFailure = { success: false; status: number; response: Re
 export type ClientResult<T> = ClientResultSuccess<T> | ClientResultFailure;
 export type ClientOperationInput<Req> = { [K in keyof Req]?: Req[K] extends z.ZodType ? z.input<Req[K]> : never };
 export type ClientResponseData<Responses> = Responses extends Record<string, unknown>
-  ? { [K in keyof Responses]: Responses[K] extends { content: infer Content } ? (Content extends Record<string, unknown> ? (Content["application/json"] extends z.ZodType ? z.infer<Content["application/json"]> : never) : never) : never }[keyof Responses]
+  ? { [K in keyof Responses as K extends `2${string}` ? K : never]: Responses[K] extends { content: infer Content } ? (Content extends Record<string, unknown> ? (Content["application/json"] extends z.ZodType ? z.infer<Content["application/json"]> : never) : never) : never } extends infer M
+    ? M[keyof M]
+    : never
   : unknown;
 export type ClientOperationShape = {
   method: string;

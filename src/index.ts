@@ -196,7 +196,7 @@ export function convertOpenApiToZod(document: unknown, options: ConvertOpenApiTo
 
   const operationsOutputLines = ['import * as z from "zod";'];
   if (operationsImports.length > 0) {
-    operationsOutputLines.push(`import { ${operationsImports.join(", ")} } from "./schema.js";`);
+    operationsOutputLines.push(`import { ${operationsImports.join(", ")} } from "./schema";`);
   }
   const operationsCustomFormatLines = customFormatImportLines(
     resolved.customFormats,
@@ -214,7 +214,7 @@ export function convertOpenApiToZod(document: unknown, options: ConvertOpenApiTo
   if (resolved.includeRouteMap) {
     const routerLines = ['import * as z from "zod";'];
     if (operations.exportNames.length > 0) {
-      routerLines.push(`import { ${operations.exportNames.join(", ")} } from "./operations.js";`);
+      routerLines.push(`import { ${operations.exportNames.join(", ")} } from "./operations";`);
     }
     routerLines.push("");
     routerLines.push(`export const routes = [${operations.exportNames.join(", ")}] as const;`);
@@ -227,7 +227,7 @@ export function convertOpenApiToZod(document: unknown, options: ConvertOpenApiTo
     const clientBodyLines = [...clientHelperCode(), ...clientFunctions.lines];
     const clientLines = ['import * as z from "zod";'];
     if (operations.exportNames.length > 0) {
-      clientLines.push(`import { ${operations.exportNames.join(", ")} } from "./operations.js";`);
+      clientLines.push(`import { ${operations.exportNames.join(", ")} } from "./operations";`);
     }
     clientLines.push(...clientBodyLines);
     outputs.push({ path: "api/client.ts", contents: `${generatedBanner}\n\n${clientLines.join("\n")}\n` });

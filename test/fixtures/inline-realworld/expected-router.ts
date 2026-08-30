@@ -1,7 +1,7 @@
 // AUTO-GENERATED FILE. DO NOT EDIT.
 
 import * as z from "zod";
-import { createOrderOperation } from "./operations.js";
+import { createOrderOperation } from "./operations";
 
 export const routes = [createOrderOperation] as const;
 type GeneratedRouteOperation = { method: string; path: string; request?: unknown };

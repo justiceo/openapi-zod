@@ -7,19 +7,19 @@ The package exposes a pure library API and a thin CLI. The library returns gener
 ## Install
 
 ```sh
-npm install openapi-zod zod
+npm install @justiceo/openapi-zod zod
 ```
 
 ## CLI
 
 ```sh
-npx openapi-zod --input openapi.yaml --output src/generated
+npx -p @justiceo/openapi-zod openapi-zod --input openapi.yaml --output src/generated
 ```
 
 JSON inputs are also supported:
 
 ```sh
-npx openapi-zod --input openapi.json --output src/generated
+npx -p @justiceo/openapi-zod openapi-zod --input openapi.json --output src/generated
 ```
 
 By default this writes three files: `api/schema.ts` (Zod schemas and reusable components), `api/operations.ts` (operation metadata, importing from `schema.ts`), and `api/router.ts` (the aggregate `routes` export and route-matching helpers, importing from `operations.ts`).
@@ -27,7 +27,7 @@ By default this writes three files: `api/schema.ts` (Zod schemas and reusable co
 Pass `--single-file` to emit one combined file instead:
 
 ```sh
-npx openapi-zod --input openapi.json --output src/generated --single-file --output-file schemas.ts
+npx -p @justiceo/openapi-zod openapi-zod --input openapi.json --output src/generated --single-file --output-file schemas.ts
 ```
 
 Useful flags:
@@ -66,7 +66,7 @@ The CLI exits non-zero when conversion emits errors, or when `--fail-on-warning`
 ## Library API
 
 ```ts
-import { convertOpenApiToZod } from "openapi-zod";
+import { convertOpenApiToZod } from "@justiceo/openapi-zod";
 
 const result = convertOpenApiToZod(openApiDocument, {
   outputMode: "multiFile",

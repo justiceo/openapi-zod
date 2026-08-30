@@ -1,7 +1,7 @@
 // AUTO-GENERATED FILE. DO NOT EDIT.
 
 import * as z from "zod";
-import { ItemBodyRequestBody, ItemIdParameter, ItemResponseResponse, TraceIdParameter } from "./schema.js";
+import { ItemBodyRequestBody, ItemIdParameter, ItemResponseResponse, TraceIdParameter } from "./schema";
 
 export const createItemOperation = {
   operationId: "createItem",

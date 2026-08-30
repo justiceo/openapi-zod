@@ -1,7 +1,7 @@
 // AUTO-GENERATED FILE. DO NOT EDIT.
 
 import * as z from "zod";
-import { ProfilePatchSchema, ProfileSchema } from "./schema.js";
+import { ProfilePatchSchema, ProfileSchema } from "./schema";
 
 export const updateProfileOperation = {
   operationId: "updateProfile",

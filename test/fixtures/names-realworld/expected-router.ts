@@ -1,7 +1,7 @@
 // AUTO-GENERATED FILE. DO NOT EDIT.
 
 import * as z from "zod";
-import { Schema2024reportlookupOperation } from "./operations.js";
+import { Schema2024reportlookupOperation } from "./operations";
 
 export const routes = [Schema2024reportlookupOperation] as const;
 type GeneratedRouteOperation = { method: string; path: string; request?: unknown };

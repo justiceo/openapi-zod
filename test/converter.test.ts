@@ -385,9 +385,9 @@ components:
         "--target",
         "ES2022",
         "--module",
-        "NodeNext",
+        "ESNext",
         "--moduleResolution",
-        "NodeNext",
+        "bundler",
         ...generatedFiles,
       ]);
     } finally {

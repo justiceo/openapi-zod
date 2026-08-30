@@ -1,7 +1,7 @@
 // AUTO-GENERATED FILE. DO NOT EDIT.
 
 import * as z from "zod";
-import { ErrorSchema, UserSchema } from "./schema.js";
+import { ErrorSchema, UserSchema } from "./schema";
 
 export const getUserOperation = {
   operationId: "getUser",

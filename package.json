@@ -1,6 +1,6 @@
 {
-  "name": "openapi-zod",
-  "version": "0.3.0",
+  "name": "@justiceo/openapi-zod",
+  "version": "0.3.1",
   "description": "Convert OpenAPI 3.x documents to Zod 4 validators and route metadata.",
   "license": "MIT",
   "author": "Justice O.",

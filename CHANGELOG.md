@@ -6,6 +6,12 @@ This project follows semantic versioning. Patch releases contain compatible bug 
 
 ## Unreleased
 
+## 0.3.1
+
+- Rename the published package to `@justiceo/openapi-zod` (the unscoped `openapi-zod` name on npm belongs to an unrelated, unmaintained package). The CLI bin name is unchanged (`openapi-zod`).
+- Fix: multi-file output emitted `.js`-suffixed relative imports (`./schema.js`, `./operations.js`) between generated files. This resolves fine under `moduleResolution: NodeNext` but breaks bundler-mode consumers (`moduleResolution: bundler`, used by tsc/bun and by Next.js/Turbopack), which fail with "Module not found" since no `.js` file actually exists alongside the `.ts` output. Imports are now extensionless.
+- Fix: `ClientResponseData<Responses>` (used by the generated client SDK) unioned the response body of every status code, so a successful `ClientResult`'s `data` was typed as `SuccessBody | ErrorBody`. It's now narrowed to 2xx responses only.
+
 ## 0.3.0
 
 - Add an opt-in generated client SDK: `includeClient: true` (or `--include-client` on the CLI) emits `api/client.ts` (or appends to `schemas.ts` in single-file mode) with typed, per-operation fetch wrapper functions and a bound `createClient()`, built from the already-generated operation metadata. Calls return a discriminated `ClientResult<T>` instead of throwing.

@@ -1,7 +1,7 @@
 // AUTO-GENERATED FILE. DO NOT EDIT.
 
 import * as z from "zod";
-import { updatePetOperation, addPetOperation, findPetsByStatusOperation, findPetsByTagsOperation, getPetByIdOperation, updatePetWithFormOperation, deletePetOperation, uploadFileOperation, getInventoryOperation, placeOrderOperation, getOrderByIdOperation, deleteOrderOperation, createUserOperation, createUsersWithListInputOperation, loginUserOperation, logoutUserOperation, getUserByNameOperation, updateUserOperation, deleteUserOperation } from "./operations.js";
+import { updatePetOperation, addPetOperation, findPetsByStatusOperation, findPetsByTagsOperation, getPetByIdOperation, updatePetWithFormOperation, deletePetOperation, uploadFileOperation, getInventoryOperation, placeOrderOperation, getOrderByIdOperation, deleteOrderOperation, createUserOperation, createUsersWithListInputOperation, loginUserOperation, logoutUserOperation, getUserByNameOperation, updateUserOperation, deleteUserOperation } from "./operations";
 
 export const routes = [updatePetOperation, addPetOperation, findPetsByStatusOperation, findPetsByTagsOperation, getPetByIdOperation, updatePetWithFormOperation, deletePetOperation, uploadFileOperation, getInventoryOperation, placeOrderOperation, getOrderByIdOperation, deleteOrderOperation, createUserOperation, createUsersWithListInputOperation, loginUserOperation, logoutUserOperation, getUserByNameOperation, updateUserOperation, deleteUserOperation] as const;
 type GeneratedRouteOperation = { method: string; path: string; request?: unknown };

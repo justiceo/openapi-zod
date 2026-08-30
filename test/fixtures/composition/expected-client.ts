@@ -19,7 +19,9 @@ export type ClientResultFailure = { success: false; status: number; response: Re
 export type ClientResult<T> = ClientResultSuccess<T> | ClientResultFailure;
 export type ClientOperationInput<Req> = { [K in keyof Req]?: Req[K] extends z.ZodType ? z.input<Req[K]> : never };
 export type ClientResponseData<Responses> = Responses extends Record<string, unknown>
-  ? { [K in keyof Responses]: Responses[K] extends { content: infer Content } ? (Content extends Record<string, unknown> ? (Content["application/json"] extends z.ZodType ? z.infer<Content["application/json"]> : never) : never) : never }[keyof Responses]
+  ? { [K in keyof Responses as K extends `2${string}` ? K : never]: Responses[K] extends { content: infer Content } ? (Content extends Record<string, unknown> ? (Content["application/json"] extends z.ZodType ? z.infer<Content["application/json"]> : never) : never) : never } extends infer M
+    ? M[keyof M]
+    : never
   : unknown;
 export type ClientOperationShape = {
   method: string;

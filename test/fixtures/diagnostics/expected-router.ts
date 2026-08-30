@@ -1,7 +1,7 @@
 // AUTO-GENERATED FILE. DO NOT EDIT.
 
 import * as z from "zod";
-import { missingPathParamOperation, noResponsesOperation, uploadOperation } from "./operations.js";
+import { missingPathParamOperation, noResponsesOperation, uploadOperation } from "./operations";
 
 export const routes = [missingPathParamOperation, noResponsesOperation, uploadOperation] as const;
 type GeneratedRouteOperation = { method: string; path: string; request?: unknown };

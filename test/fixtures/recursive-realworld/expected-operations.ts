@@ -1,7 +1,7 @@
 // AUTO-GENERATED FILE. DO NOT EDIT.
 
 import * as z from "zod";
-import { CategorySchema } from "./schema.js";
+import { CategorySchema } from "./schema";
 
 export const getCategoryOperation = {
   operationId: "getCategory",

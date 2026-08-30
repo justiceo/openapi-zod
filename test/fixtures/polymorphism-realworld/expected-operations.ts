@@ -1,7 +1,7 @@
 // AUTO-GENERATED FILE. DO NOT EDIT.
 
 import * as z from "zod";
-import { EventSchema } from "./schema.js";
+import { EventSchema } from "./schema";
 
 export const ingestEventOperation = {
   operationId: "ingestEvent",

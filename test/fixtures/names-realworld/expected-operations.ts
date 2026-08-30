@@ -1,7 +1,7 @@
 // AUTO-GENERATED FILE. DO NOT EDIT.
 
 import * as z from "zod";
-import { Schema2024reportSchema } from "./schema.js";
+import { Schema2024reportSchema } from "./schema";
 
 export const Schema2024reportlookupOperation = {
   operationId: "2024-report.lookup",
