@@ -381,6 +381,7 @@ components:
       await execFileAsync(join(process.cwd(), "node_modules", ".bin", "tsc"), [
         "--noEmit",
         "--strict",
+        "--skipLibCheck",
         "--target",
         "ES2022",
         "--module",
