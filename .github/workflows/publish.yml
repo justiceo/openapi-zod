@@ -1,0 +1,53 @@
+name: Publish
+
+on:
+  workflow_dispatch:
+  release:
+    types:
+      - published
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+
+      - name: Test
+        run: bun test
+
+      - name: Package dry run
+        run: bun run pack:dry-run
+
+      # Trusted publishing authenticates via GitHub's OIDC token instead of a
+      # long-lived NPM_TOKEN secret — npm exchanges it for a short-lived
+      # publish credential, scoped to this exact repo + workflow file. Needs
+      # npm >= 11.5.1 (this workflow's filename, "publish.yml", must match
+      # what's registered as the trusted publisher on npmjs.com).
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Publish
+        run: npm publish --provenance --access public
