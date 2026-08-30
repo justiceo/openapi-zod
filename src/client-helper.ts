@@ -17,6 +17,7 @@ export function clientHelperCode(): string[] {
     "export type ClientResultFailure = { success: false; status: number; response: Response; data: unknown; issues?: z.core.$ZodIssue[] };",
     "export type ClientResult<T> = ClientResultSuccess<T> | ClientResultFailure;",
     "export type ClientOperationInput<Req> = { [K in keyof Req]?: Req[K] extends z.ZodType ? z.input<Req[K]> : never };",
+    // Keeps only 2xx response keys, so a successful ClientResult's `data` isn't typed as a union including error bodies.
     "export type ClientResponseData<Responses> = Responses extends Record<string, unknown>",
     '  ? { [K in keyof Responses as K extends `2${string}` ? K : never]: Responses[K] extends { content: infer Content } ? (Content extends Record<string, unknown> ? (Content["application/json"] extends z.ZodType ? z.infer<Content["application/json"]> : never) : never) : never } extends infer M',
     "    ? M[keyof M]",
