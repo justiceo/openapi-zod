@@ -1,9 +1,9 @@
+import { describe, expect, it } from "bun:test";
 import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
-import { describe, expect, it } from "bun:test";
 import { convertOpenApiToZod } from "../src/index.js";
 import { loadOpenApiDocument } from "../src/loader.js";
 
@@ -80,6 +80,57 @@ describe("fixture conversion", () => {
       expect(clientOutput?.contents).toEqual(expectedClient);
     });
   }
+
+  for (const fixture of clientFixtures) {
+    it(`matches ${fixture} api/server.ts when includeServer is true`, async () => {
+      const document = await loadOpenApiDocument(join("test", "fixtures", fixture, "openapi.yaml"));
+      const expectedServer = `${(await readFixture(fixture, "expected-server.ts")).trimEnd()}\n`;
+
+      const result = convertOpenApiToZod(document, { includeServer: true });
+
+      const serverOutput = result.outputs.find((output) => output.path === "api/server.ts");
+      expect(serverOutput?.contents).toEqual(expectedServer);
+    });
+  }
+
+  it("omits api/server.ts unless includeServer is true", async () => {
+    const document = await loadOpenApiDocument(join("test", "fixtures", "operations", "openapi.yaml"));
+
+    const result = convertOpenApiToZod(document);
+
+    expect(result.outputs.some((output) => output.path === "api/server.ts")).toBe(false);
+  });
+
+  it("reports an error and skips the server stub when the route map is disabled", async () => {
+    const document = await loadOpenApiDocument(join("test", "fixtures", "operations", "openapi.yaml"));
+
+    const result = convertOpenApiToZod(document, { includeServer: true, includeRouteMap: false });
+
+    expect(result.outputs.some((output) => output.path === "api/server.ts")).toBe(false);
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({ level: "error", code: "invalid.serverWithoutRouteMap" }),
+    );
+  });
+
+  it("applies the CLI --include-server flag", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
+
+    try {
+      await execFileAsync("bun", [
+        "src/cli.ts",
+        "--input",
+        join("test", "fixtures", "operations", "openapi.yaml"),
+        "--output",
+        dir,
+        "--include-server",
+      ]);
+      const contents = await readFile(join(dir, "api", "server.ts"), "utf8");
+      expect(contents).toContain("export function createServer(options: ServerOptions = {})");
+      expect(contents).toContain("export const serverExamples = {");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
 
   it("omits api/client.ts unless includeClient is true", async () => {
     const document = await loadOpenApiDocument(join("test", "fixtures", "operations", "openapi.yaml"));
@@ -345,6 +396,7 @@ components:
     }
   });
 
+  // A single tsc pass over every fixture's schema/router/client/server output outgrows bun's 5s default timeout.
   it("emits TypeScript that compiles for route-heavy fixtures", async () => {
     const dir = await mkdtemp(join(process.cwd(), ".generated-"));
     const generatedFiles: string[] = [];
@@ -376,6 +428,16 @@ components:
             }
           }
         }
+
+        const withServer = convertOpenApiToZod(document, { includeServer: true });
+        if (withServer.outputs.some((output) => output.path === "api/server.ts")) {
+          for (const output of withServer.outputs) {
+            const generatedFile = join(dir, fixture, "server", output.path);
+            await mkdir(dirname(generatedFile), { recursive: true });
+            generatedFiles.push(generatedFile);
+            await writeFile(generatedFile, output.contents, "utf8");
+          }
+        }
       }
 
       await execFileAsync(join(process.cwd(), "node_modules", ".bin", "tsc"), [
@@ -393,7 +455,7 @@ components:
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
-  });
+  }, 30_000);
 
   it("generates getRoute for runtime route matching and validation", async () => {
     const document = {

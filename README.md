@@ -1,6 +1,6 @@
 # sdksmith
 
-Convert OpenAPI 3.0.x and 3.1.x documents into Zod 4 validators, inferred TypeScript types, operation metadata, route maps, an optional typed client SDK, reusable component validators, security credential validators, and document metadata.
+Convert OpenAPI 3.0.x and 3.1.x documents into Zod 4 validators, inferred TypeScript types, operation metadata, route maps, an optional typed client SDK, an optional typed server stub, reusable component validators, security credential validators, and document metadata.
 
 The package exposes a pure library API and a thin CLI. The library returns generated files in memory; the CLI owns reading OpenAPI files and writing generated TypeScript.
 
@@ -46,6 +46,7 @@ Useful flags:
 --no-security-validators    Skip security credential validators.
 --no-metadata               Skip document metadata export.
 --include-client            Emit a typed fetch-based client SDK (api/client.ts).
+--include-server            Emit a typed server stub with handler registration and test helpers (api/server.ts).
 --single-file               Emit schemas.ts instead of api/schema.ts, api/operations.ts, and api/router.ts.
 --strict-objects            Generate strict object schemas where possible.
 --media-type <value>        Include an additional request/response media type. Repeatable.
@@ -159,6 +160,53 @@ if (result.success) console.log(result.data);
 
 Each generated function returns a `ClientResult<T>` (`{ success: true, status, response, data }` or `{ success: false, status, response, data, issues? }`) instead of throwing — the response body is parsed and validated against the Zod schema for the matched status (exact status, then `NXX` range, then `default`). Only `application/json` request/response bodies are specially handled in this first version; other media types still compile but aren't serialized/parsed automatically. `includeClient` defaults to `false` since this is a newer, less battle-tested surface than the rest of the generated output.
 
+Pass `includeServer: true` (or `--include-server` on the CLI) to also emit `api/server.ts`, a typed server stub that dispatches requests through `getRoute` to the handlers you register. Every operation becomes a route you implement with one call; anything you haven't implemented answers `501 Not Implemented`:
+
+```ts
+import { createServer } from "./api/server.js";
+
+const server = createServer();
+
+// Plain handler: receives the parsed, validated request parts and returns the success body,
+// which is sent with the operation's first declared 2xx status.
+server.route.getUser(async ({ params, query }, { reply }) => {
+  const user = await db.users.find(params.userId);
+  return user ?? reply(404, { message: "Not found" }); // reply() is typed against the declared responses
+});
+
+// Raw handler: receives the full typed request (params, query, headers, cookies, body, plus
+// method, path, url, rawHeaders and the original request object) and returns { status, body, headers? }.
+server.route.updateUser.raw(async (req) => {
+  await db.users.update(req.params.userId, req.body);
+  return { status: 204 };
+});
+
+// Fetch-API runtimes (Bun.serve, Deno.serve, Cloudflare Workers, Hono, ...):
+export default { fetch: server.fetch };
+
+// Or any framework with already-parsed requests (Express, Fastify, Koa, ...):
+app.use(async (req, res) => {
+  const { status, headers, body } = await server.handle(req);
+  res.status(status).set(headers).send(body);
+});
+```
+
+Handler inputs, return values, and `reply()`/raw reply statuses are all inferred from the operation, so returning a body that doesn't match the response schema is a type error. Requests that match no route answer `404`, and requests that fail validation (or have an unparseable body) answer `400` with the Zod issues. A thrown handler error becomes a `500`, or whatever `onError(error, operation)` returns. `createServer({ validateResponses: true })` also checks each reply against its response schema at runtime and turns mismatches into `500`s, which is useful in development and tests.
+
+For tests, the stub ships with example data and helpers:
+
+- `serverExamples.<operation>` holds an example `request` (`params`, `query`, `headers`, `cookies`, `body`) and an example body per response status. Examples come from the document's `example`/`examples`; where there are none they are synthesized from the schema (`default`, `const`, `enum`, `format`, and min/max constraints are honored).
+- `server.inject("getUser", overrides?)` sends the operation's example request, merged with any overrides, through the full server in-process and returns `{ status, headers, body }`. No network is involved.
+- `createServer({ mock: true })` answers operations that have no handler with their example success response, which gives you a ready-made mock API (for example, as the `fetch` of the generated client).
+
+```ts
+const server = createServer({ validateResponses: true });
+server.route.getUser(({ params }) => ({ id: params.userId, email: "a@example.com" }));
+
+expect(await server.inject("getUser")).toMatchObject({ status: 200 });
+expect((await server.inject("getUser", { params: { userId: "not-a-uuid" } })).status).toBe(400);
+```
+
 Pass `outputMode: "singleFile"` (or `--single-file` on the CLI) to combine these into one `schemas.ts` file instead.
 
 Exact output depends on the OpenAPI document and selected options. Component names, reusable components, paths, and operations are sorted for deterministic generation.
@@ -177,6 +225,7 @@ Exact output depends on the OpenAPI document and selected options. Component nam
 | `includeInferredTypes` | `true` |
 | `includeRouteMap` | `true` |
 | `includeClient` | `false` |
+| `includeServer` | `false` (requires `includeRouteMap`) |
 | `includeOperationTypes` | `true` |
 | `includeSecurityValidators` | `true` |
 | `includeDocumentMetadata` | `true` |
@@ -266,6 +315,7 @@ OpenAPI document surfaces:
 | `info`, `servers`, `tags`, `externalDocs` | metadata-only | Emitted under document metadata when enabled. |
 | Deprecated operations/components | exact | Included by default; can be skipped with `includeDeprecated: false`. |
 | Outbound client SDK (`includeClient`) | exact/metadata-only | Opt-in `api/client.ts`; only `application/json` request/response bodies are serialized/parsed automatically. |
+| Server stub (`includeServer`) | exact/metadata-only | Opt-in `api/server.ts`; dispatches through `getRoute`, JSON bodies only; examples are synthesized best-effort where the document has none. |
 
 JSON Schema and OpenAPI schema keywords:
 

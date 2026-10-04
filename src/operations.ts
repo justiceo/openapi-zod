@@ -15,9 +15,20 @@ import {
   zodObjectExpression,
 } from "./emit.js";
 
+export interface OperationEntry {
+  exportName: string;
+  operationId: string;
+  method: HttpMethod;
+  pathKey: string;
+  pathItem: Record<string, unknown>;
+  operation: Record<string, unknown>;
+  operationPath: string;
+}
+
 export interface OperationsResult {
   lines: string[];
   exportNames: string[];
+  entries: OperationEntry[];
 }
 
 export function convertOperations(
@@ -28,6 +39,7 @@ export function convertOperations(
   const globalSecurity = Array.isArray(documentObject?.security) ? documentObject.security : undefined;
   const lines: string[] = [];
   const exportNames: string[] = [];
+  const entries: OperationEntry[] = [];
   const usedNames = new Map<string, number>();
 
   for (const pathKey of Object.keys(paths).sort()) {
@@ -71,6 +83,7 @@ export function convertOperations(
         shared.diagnostics,
       );
       exportNames.push(exportName);
+      entries.push({ exportName, operationId: baseName, method, pathKey, pathItem, operation, operationPath });
       const request = convertOperationRequest(pathKey, pathItem, operation, operationPath, shared);
       const responses = convertOperationResponses(operation, operationPath, shared);
       const security = operation.security !== undefined ? operation.security : (globalSecurity ?? []);
@@ -125,7 +138,7 @@ export function convertOperations(
       }
     }
   }
-  return { lines, exportNames };
+  return { lines, exportNames, entries };
 }
 
 function convertOperationRequest(

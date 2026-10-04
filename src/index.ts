@@ -14,6 +14,8 @@ import { asRecord, buildNames, customFormatImportLines, escapePointer, helperCod
 import { convertOperations } from "./operations.js";
 import { routeHelperCode } from "./route-helper.js";
 import { componentHasCycle, convertSchema, findCycleEdges } from "./schema.js";
+import { convertServerFunctions } from "./server.js";
+import { serverHelperCode } from "./server-helper.js";
 
 export type { ConvertOpenApiToZodOptions, CustomFormat } from "./core.js";
 export type { ConversionDiagnostic } from "./diagnostics.js";
@@ -134,6 +136,17 @@ export function convertOpenApiToZod(document: unknown, options: ConvertOpenApiTo
     securityNames: reusable.securityNames,
   });
 
+  const includeServer = resolved.includeServer && resolved.includeRouteMap;
+  if (resolved.includeServer && !resolved.includeRouteMap) {
+    diagnostics.push({
+      level: "error",
+      code: "invalid.serverWithoutRouteMap",
+      path: "#",
+      message: "The server stub dispatches through the route map; enable includeRouteMap to generate it.",
+    });
+  }
+  const serverShared = { components: asRecord(documentObject?.components) ?? {}, schemas, options: resolved };
+
   if (resolved.outputMode === "singleFile") {
     const lines = ['import * as z from "zod";', ...schemaLines, ...operations.lines];
 
@@ -141,6 +154,12 @@ export function convertOpenApiToZod(document: unknown, options: ConvertOpenApiTo
       lines.push("");
       lines.push(`export const routes = [${operations.exportNames.join(", ")}] as const;`);
       lines.push(...routeHelperCode());
+    }
+
+    if (includeServer) {
+      lines.push("");
+      lines.push(...serverHelperCode());
+      lines.push(...convertServerFunctions(operations, serverShared).lines);
     }
 
     if (resolved.includeClient) {
@@ -220,6 +239,17 @@ export function convertOpenApiToZod(document: unknown, options: ConvertOpenApiTo
     routerLines.push(`export const routes = [${operations.exportNames.join(", ")}] as const;`);
     routerLines.push(...routeHelperCode());
     outputs.push({ path: "api/router.ts", contents: `${generatedBanner}\n\n${routerLines.join("\n")}\n` });
+  }
+
+  if (includeServer) {
+    const serverLines = ['import * as z from "zod";'];
+    if (operations.exportNames.length > 0) {
+      serverLines.push(`import { ${operations.exportNames.join(", ")} } from "./operations";`);
+    }
+    serverLines.push('import { getRoute, type RouteRequest } from "./router";');
+    serverLines.push(...serverHelperCode());
+    serverLines.push(...convertServerFunctions(operations, serverShared).lines);
+    outputs.push({ path: "api/server.ts", contents: `${generatedBanner}\n\n${serverLines.join("\n")}\n` });
   }
 
   if (resolved.includeClient) {

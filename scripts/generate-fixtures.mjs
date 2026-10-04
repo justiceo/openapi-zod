@@ -4,6 +4,8 @@ import { convertOpenApiToZod } from "../src/index.ts";
 import { loadOpenApiDocument } from "../src/loader.ts";
 
 const fixturesDir = join("test", "fixtures");
+// Server snapshots stay to a couple of representative fixtures; every fixture is still compiled by the test suite.
+const serverFixtures = new Set(["operations", "petstore"]);
 
 async function fileExists(path) {
   try {
@@ -45,6 +47,12 @@ async function main() {
     const clientOutput = withClient.outputs.find((output) => output.path === "api/client.ts");
     if (clientOutput) {
       await writeFile(join(dir, "expected-client.ts"), clientOutput.contents, "utf8");
+    }
+
+    if (serverFixtures.has(fixture)) {
+      const withServer = convertOpenApiToZod(document, { includeServer: true });
+      const serverOutput = withServer.outputs.find((output) => output.path === "api/server.ts");
+      await writeFile(join(dir, "expected-server.ts"), serverOutput.contents, "utf8");
     }
 
     await writeFile(join(dir, "diagnostics.json"), `${JSON.stringify(multiFile.diagnostics, null, 2)}\n`, "utf8");

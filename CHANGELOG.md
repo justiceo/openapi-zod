@@ -9,6 +9,7 @@ This project follows semantic versioning. Patch releases contain compatible bug 
 ## 0.4.0
 
 - **Breaking:** rename the project to **sdksmith**. The npm package is now `sdksmith` (was `@justiceo/openapi-zod`) and the CLI bin is now `sdksmith` (was `openapi-zod`). Generated runtime helpers are renamed from `__openapiZod*` to `__sdksmith*` (e.g. `__sdksmithStableJson`), and the route helper's placeholder base URL is now `http://sdksmith.local`; regenerate committed output after upgrading.
+- Add an opt-in generated server stub: `includeServer: true` (or `--include-server` on the CLI) emits `api/server.ts` (or appends to `schemas.ts` in single-file mode). `createServer()` exposes `route.<operation>(handler)` for plain handlers (parsed input in, success body or typed `reply(status, body)` out) and `route.<operation>.raw(handler)` for handlers that take the full typed request and return `{ status, body, headers }`. Requests are dispatched through `getRoute` via `server.fetch` (Fetch API) or `server.handle` (framework-agnostic). Operations without a handler answer `501`. For tests, the stub includes `serverExamples` (example requests and responses taken from the document or synthesized from its schemas), `server.inject()` for in-process requests, `mock: true` to serve example responses, and `validateResponses: true` to check replies at runtime. Requires `includeRouteMap`.
 
 ## 0.3.1
 

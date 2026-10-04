@@ -11,6 +11,7 @@ export interface ConvertOpenApiToZodOptions {
   includeInferredTypes?: boolean;
   includeRouteMap?: boolean;
   includeClient?: boolean;
+  includeServer?: boolean;
   includeOperationTypes?: boolean;
   includeSecurityValidators?: boolean;
   includeDocumentMetadata?: boolean;
@@ -97,6 +98,7 @@ export function resolveOptions(options: ConvertOpenApiToZodOptions): ResolvedOpt
     includeInferredTypes: options.includeInferredTypes ?? true,
     includeRouteMap: options.includeRouteMap ?? true,
     includeClient: options.includeClient ?? false,
+    includeServer: options.includeServer ?? false,
     includeOperationTypes: options.includeOperationTypes ?? true,
     includeSecurityValidators: options.includeSecurityValidators ?? true,
     includeDocumentMetadata: options.includeDocumentMetadata ?? true,

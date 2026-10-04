@@ -1,6 +1,6 @@
 import type { ResolvedOptions } from "./core.js";
 import type { ConversionDiagnostic } from "./diagnostics.js";
-import { uniqueName } from "./emit.js";
+import { operationBaseName, uniqueName } from "./emit.js";
 import type { OperationsResult } from "./operations.js";
 
 export interface ClientFunctionsResult {
@@ -14,7 +14,7 @@ export function convertClientFunctions(
   const suffix = shared.options.operationNameSuffix;
   const usedNames = new Map<string, number>();
   const entries = operations.exportNames.map((exportName) => {
-    const stripped = suffix && exportName.endsWith(suffix) ? exportName.slice(0, -suffix.length) : exportName;
+    const stripped = operationBaseName(exportName, suffix);
     const base = stripped !== exportName ? stripped : `${stripped}Client`;
     const fnName = uniqueName(base, usedNames, `client/${exportName}`, shared.diagnostics);
     return { fnName, exportName };

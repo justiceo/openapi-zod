@@ -48,6 +48,20 @@ ownership and testability, not a change in generation strategy.
     not executed by the converter itself.
   - Avoid adding OpenAPI parsing or schema conversion here.
 
+- `server-helper.ts`
+  - Contains the generated server stub runtime source (`serverCreate`, handler
+    dispatch through the generated `getRoute`, reply/response types, `inject`,
+    mock mode, response validation). Like `route-helper.ts`, it is emitted into
+    generated output and not executed by the converter.
+
+- `server.ts`
+  - Emits the per-document part of `api/server.ts`: the `serverOperations` map,
+    `serverExamples`, and `createServer()`.
+
+- `examples.ts`
+  - Builds example requests and responses for operations from explicit OpenAPI
+    examples, or synthesizes them from schemas. Used by `server.ts`.
+
 - `emit.ts`
   - Shared source-emission toolbox.
   - Owns formatting helpers, literal/object/array expression builders, generated
@@ -91,6 +105,7 @@ converter state in `core.ts`.
 - New reusable component behavior: `components.ts`.
 - New operation/path/request/response metadata behavior: `operations.ts`.
 - Changes to generated route matching/runtime validation: `route-helper.ts`.
+- Changes to the generated server stub runtime: `server-helper.ts`; example synthesis: `examples.ts`.
 - New formatting, naming, literal, or pointer helper: `emit.ts`.
 - New public option or result shape: `index.ts` plus shared support in `core.ts`.
 - New CLI flag: `cli.ts`, then wire through public options if needed.

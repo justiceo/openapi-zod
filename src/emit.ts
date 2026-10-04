@@ -277,6 +277,11 @@ export function buildNames(
   return { schemaNames, typeNames, operationNames, order };
 }
 
+// Operation export name minus the configured operation suffix (getUserOperation -> getUser).
+export function operationBaseName(exportName: string, suffix: string): string {
+  return suffix && exportName.endsWith(suffix) ? exportName.slice(0, -suffix.length) : exportName;
+}
+
 export function uniqueName(
   base: string,
   used: Map<string, number>,
