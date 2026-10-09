@@ -168,7 +168,7 @@ describe("internal schema helpers", () => {
 
 describe("loader error handling", () => {
   it("wraps malformed JSON parse errors with the file path", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
+    const dir = await mkdtemp(join(tmpdir(), "sdksmith-"));
     const file = join(dir, "spec.json");
     try {
       await writeFile(file, "{ not valid json", "utf8");
@@ -179,7 +179,7 @@ describe("loader error handling", () => {
   });
 
   it("wraps malformed YAML parse errors with the file path", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
+    const dir = await mkdtemp(join(tmpdir(), "sdksmith-"));
     const file = join(dir, "spec.yaml");
     try {
       await writeFile(file, "key: [unterminated", "utf8");

@@ -174,7 +174,7 @@ function convertTypedSchema(schema: Record<string, unknown>, type: string, conte
 // Reads the `x-error-message` vendor extension: either a single string (applied to
 // minLength, the overwhelmingly common "field is required" case) or an object keyed
 // by constraint keyword (minLength/maxLength/pattern) for finer control. Not a
-// standard JSON Schema keyword -- openapi-zod has no other way to carry a custom
+// standard JSON Schema keyword -- sdksmith has no other way to carry a custom
 // zod validation message through codegen, since bare .min()/.max()/.regex() calls
 // only ever emit generic zod messages.
 function errorMessageFor(schema: Record<string, unknown>, keyword: string): string | undefined {
@@ -483,7 +483,7 @@ function applyArrayConstraints(expression: string, schema: Record<string, unknow
   }
   if (schema.uniqueItems === true) {
     context.helpers.add("uniqueItems");
-    expression += ".superRefine((items, ctx) => __openapiZodUniqueItems(items, ctx))";
+    expression += ".superRefine((items, ctx) => __sdksmithUniqueItems(items, ctx))";
   }
   if (schema.contains !== undefined) {
     context.helpers.add("contains");
@@ -494,7 +494,7 @@ function applyArrayConstraints(expression: string, schema: Record<string, unknow
     });
     const min = isFiniteNumber(schema.minContains) ? schema.minContains : 1;
     const max = isFiniteNumber(schema.maxContains) ? schema.maxContains : undefined;
-    expression += `.superRefine((items, ctx) => __openapiZodContains(items, ctx, ${containsSchema}, ${min}, ${max === undefined ? "undefined" : max}))`;
+    expression += `.superRefine((items, ctx) => __sdksmithContains(items, ctx, ${containsSchema}, ${min}, ${max === undefined ? "undefined" : max}))`;
   }
   return expression;
 }
@@ -606,7 +606,7 @@ function applyObjectConstraints(expression: string, schema: Record<string, unkno
       path: `${context.path}/propertyNames`,
       inProperty: false,
     });
-    result += `.superRefine((value, ctx) => __openapiZodPropertyNames(value, ctx, ${propertyNameSchema}))`;
+    result += `.superRefine((value, ctx) => __sdksmithPropertyNames(value, ctx, ${propertyNameSchema}))`;
   }
   const patternProperties = asRecord(schema.patternProperties);
   if (patternProperties) {
@@ -625,7 +625,7 @@ function applyObjectConstraints(expression: string, schema: Record<string, unkno
     }
     if (patterns.length > 0) {
       context.helpers.add("patternProperties");
-      result += `.superRefine((value, ctx) => __openapiZodPatternProperties(value, ctx, [${patterns.join(", ")}]))`;
+      result += `.superRefine((value, ctx) => __sdksmithPatternProperties(value, ctx, [${patterns.join(", ")}]))`;
     }
   }
   const dependentRequired = asRecord(schema.dependentRequired);
@@ -646,7 +646,7 @@ function applyObjectConstraints(expression: string, schema: Record<string, unkno
     }
     if (Object.keys(dependencies).length > 0) {
       context.helpers.add("dependentRequired");
-      result += `.superRefine((value, ctx) => __openapiZodDependentRequired(value, ctx, ${literalObjectExpression(dependencies, 0)}))`;
+      result += `.superRefine((value, ctx) => __sdksmithDependentRequired(value, ctx, ${literalObjectExpression(dependencies, 0)}))`;
     }
   }
   const dependentSchemas = asRecord(schema.dependentSchemas);
@@ -662,7 +662,7 @@ function applyObjectConstraints(expression: string, schema: Record<string, unkno
     }
     if (entries.length > 0) {
       context.helpers.add("dependentSchemas");
-      result += `.superRefine((value, ctx) => __openapiZodDependentSchemas(value, ctx, [${entries.join(", ")}]))`;
+      result += `.superRefine((value, ctx) => __sdksmithDependentSchemas(value, ctx, [${entries.join(", ")}]))`;
     }
   }
   return result;
@@ -760,7 +760,7 @@ function convertUnion(branches: unknown[], context: ConvertContext, keyword: "on
   const union = `z.union([${expressions.join(", ")}])`;
   if (keyword === "oneOf" && !areBranchesProvablyDisjoint(branches)) {
     context.helpers.add("oneOf");
-    return `z.unknown().superRefine((value, ctx) => __openapiZodOneOf(value, ctx, [${expressions.join(", ")}])).pipe(${union})`;
+    return `z.unknown().superRefine((value, ctx) => __sdksmithOneOf(value, ctx, [${expressions.join(", ")}])).pipe(${union})`;
   }
   return union;
 }
@@ -1021,7 +1021,7 @@ function applyConditional(expression: string, schema: Record<string, unknown>, c
     schema.else === undefined
       ? "undefined"
       : convertSchema(schema.else, { ...context, path: `${context.path}/else`, inProperty: false });
-  return `z.unknown().superRefine((value, ctx) => __openapiZodConditional(value, ctx, ${ifSchema}, ${thenSchema}, ${elseSchema})).pipe(${expression})`;
+  return `z.unknown().superRefine((value, ctx) => __sdksmithConditional(value, ctx, ${ifSchema}, ${thenSchema}, ${elseSchema})).pipe(${expression})`;
 }
 
 function isDefaultCompatible(schema: Record<string, unknown>, value: unknown): boolean {
@@ -1074,7 +1074,7 @@ function literalExpression(value: unknown, context: ConvertContext, code: "unsaf
       return undefined;
     }
     context.helpers.add("literal");
-    return `z.custom((value) => __openapiZodStableJson(value) === ${JSON.stringify(stable)})`;
+    return `z.custom((value) => __sdksmithStableJson(value) === ${JSON.stringify(stable)})`;
   }
   return `z.literal(${literal})`;
 }

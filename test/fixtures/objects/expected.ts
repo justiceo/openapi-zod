@@ -154,7 +154,7 @@ function matchRouteNode(node: RouteMatcherNode, segments: string[], index: numbe
 
 function routeRequestPathname(request: RouteRequest): string {
   const value = request.path ?? request.originalUrl ?? request.url ?? "/";
-  const url = new URL(value, "http://openapi-zod.local");
+  const url = new URL(value, "http://sdksmith.local");
   return url.pathname || "/";
 }
 
@@ -164,7 +164,7 @@ function routePathSegments(pathname: string): string[] {
 
 function routeQueryValues(request: RouteRequest): Record<string, unknown> {
   if (request.query !== undefined) return coerceRouteRecord(request.query);
-  const url = new URL(request.url ?? request.originalUrl ?? request.path ?? "/", "http://openapi-zod.local");
+  const url = new URL(request.url ?? request.originalUrl ?? request.path ?? "/", "http://sdksmith.local");
   const values: Record<string, unknown> = {};
   url.searchParams.forEach((value, key) => {
     const coerced = coerceRouteScalar(value);

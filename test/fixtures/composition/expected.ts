@@ -10,17 +10,17 @@ export const openApiMetadata = {
   openapi: "3.1.0",
 } as const;
 
-const __openapiZodStableJson = (value: unknown): string => {
+const __sdksmithStableJson = (value: unknown): string => {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map((item) => __openapiZodStableJson(item)).join(",")}]`;
+  if (Array.isArray(value)) return `[${value.map((item) => __sdksmithStableJson(item)).join(",")}]`;
   const object = value as Record<string, unknown>;
-  return `{${Object.keys(object).sort().map((key) => `${JSON.stringify(key)}:${__openapiZodStableJson(object[key])}`).join(",")}}`;
+  return `{${Object.keys(object).sort().map((key) => `${JSON.stringify(key)}:${__sdksmithStableJson(object[key])}`).join(",")}}`;
 };
 
-const __openapiZodUniqueItems = (items: unknown[], ctx: z.core.$RefinementCtx): void => {
+const __sdksmithUniqueItems = (items: unknown[], ctx: z.core.$RefinementCtx): void => {
   const seen = new Set<string>();
   for (const item of items) {
-    const key = __openapiZodStableJson(item);
+    const key = __sdksmithStableJson(item);
     if (seen.has(key)) {
       ctx.addIssue({ code: "custom", message: "Expected array items to be unique." });
       return;
@@ -44,7 +44,7 @@ export type Mixed = z.infer<typeof MixedSchema>;
 export const RoleSchema = z.literal("admin");
 export type Role = z.infer<typeof RoleSchema>;
 
-export const TagsSchema = z.array(z.string()).min(1).superRefine((items, ctx) => __openapiZodUniqueItems(items, ctx));
+export const TagsSchema = z.array(z.string()).min(1).superRefine((items, ctx) => __sdksmithUniqueItems(items, ctx));
 export type Tags = z.infer<typeof TagsSchema>;
 
 export const TimestampedSchema = z.object({
@@ -183,7 +183,7 @@ function matchRouteNode(node: RouteMatcherNode, segments: string[], index: numbe
 
 function routeRequestPathname(request: RouteRequest): string {
   const value = request.path ?? request.originalUrl ?? request.url ?? "/";
-  const url = new URL(value, "http://openapi-zod.local");
+  const url = new URL(value, "http://sdksmith.local");
   return url.pathname || "/";
 }
 
@@ -193,7 +193,7 @@ function routePathSegments(pathname: string): string[] {
 
 function routeQueryValues(request: RouteRequest): Record<string, unknown> {
   if (request.query !== undefined) return coerceRouteRecord(request.query);
-  const url = new URL(request.url ?? request.originalUrl ?? request.path ?? "/", "http://openapi-zod.local");
+  const url = new URL(request.url ?? request.originalUrl ?? request.path ?? "/", "http://sdksmith.local");
   const values: Record<string, unknown> = {};
   url.searchParams.forEach((value, key) => {
     const coerced = coerceRouteScalar(value);

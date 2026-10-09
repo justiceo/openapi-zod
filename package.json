@@ -1,6 +1,6 @@
 {
-  "name": "@justiceo/openapi-zod",
-  "version": "0.3.1",
+  "name": "sdksmith",
+  "version": "0.4.0",
   "description": "Convert OpenAPI 3.x documents to Zod 4 validators and route metadata.",
   "license": "MIT",
   "author": "Justice O.",
@@ -18,7 +18,7 @@
   },
   "type": "module",
   "bin": {
-    "openapi-zod": "./dist/cli.js"
+    "sdksmith": "./dist/cli.js"
   },
   "exports": {
     ".": {

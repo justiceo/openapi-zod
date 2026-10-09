@@ -31,15 +31,15 @@ export interface ConversionResult {
 const generatedBanner = "// AUTO-GENERATED FILE. DO NOT EDIT.";
 
 const helperExportNames = [
-  "__openapiZodStableJson",
-  "__openapiZodOneOf",
-  "__openapiZodUniqueItems",
-  "__openapiZodPropertyNames",
-  "__openapiZodPatternProperties",
-  "__openapiZodContains",
-  "__openapiZodConditional",
-  "__openapiZodDependentRequired",
-  "__openapiZodDependentSchemas",
+  "__sdksmithStableJson",
+  "__sdksmithOneOf",
+  "__sdksmithUniqueItems",
+  "__sdksmithPropertyNames",
+  "__sdksmithPatternProperties",
+  "__sdksmithContains",
+  "__sdksmithConditional",
+  "__sdksmithDependentRequired",
+  "__sdksmithDependentSchemas",
 ];
 
 export function convertOpenApiToZod(document: unknown, options: ConvertOpenApiToZodOptions = {}): ConversionResult {

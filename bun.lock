@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "openapi-zod",
+      "name": "sdksmith",
       "dependencies": {
         "yaml": "^2.8.0",
       },

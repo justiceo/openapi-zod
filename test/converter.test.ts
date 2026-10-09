@@ -90,7 +90,7 @@ describe("fixture conversion", () => {
   });
 
   it("applies the CLI --include-client flag", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
+    const dir = await mkdtemp(join(tmpdir(), "sdksmith-"));
 
     try {
       await execFileAsync("bun", [
@@ -142,7 +142,7 @@ describe("fixture conversion", () => {
     const fixture = "primitives";
     const document = await loadOpenApiDocument(join("test", "fixtures", fixture, "openapi.yaml"));
     const expected = convertOpenApiToZod(document);
-    const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
+    const dir = await mkdtemp(join(tmpdir(), "sdksmith-"));
 
     try {
       await execFileAsync("bun", [
@@ -170,7 +170,7 @@ describe("fixture conversion", () => {
   });
 
   it("applies CLI output and generation flags", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
+    const dir = await mkdtemp(join(tmpdir(), "sdksmith-"));
 
     try {
       await execFileAsync("bun", [
@@ -200,7 +200,7 @@ describe("fixture conversion", () => {
   });
 
   it("applies the CLI include-default-values flag", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
+    const dir = await mkdtemp(join(tmpdir(), "sdksmith-"));
 
     try {
       await execFileAsync("bun", [
@@ -224,7 +224,7 @@ describe("fixture conversion", () => {
   it("prints CLI help", async () => {
     const result = await execFileAsync("bun", ["src/cli.ts", "--help"]);
 
-    expect(result.stdout).toContain("Usage: openapi-zod --input <path> --output <dir>");
+    expect(result.stdout).toContain("Usage: sdksmith --input <path> --output <dir>");
     expect(result.stdout).toContain("--include-default-values");
     expect(result.stdout).toContain("--include-client");
     expect(result.stdout).toContain("--custom-format <value>");
@@ -233,7 +233,7 @@ describe("fixture conversion", () => {
   });
 
   it("registers a custom format from the CLI flag", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
+    const dir = await mkdtemp(join(tmpdir(), "sdksmith-"));
 
     try {
       const inputFile = join(dir, "openapi.yaml");
@@ -325,7 +325,7 @@ components:
   });
 
   it("fails the CLI on warnings when requested", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
+    const dir = await mkdtemp(join(tmpdir(), "sdksmith-"));
 
     try {
       await expect(
@@ -1013,7 +1013,7 @@ describe("custom formats", () => {
   });
 
   it("registers multiple custom formats from repeated CLI flags", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "openapi-zod-"));
+    const dir = await mkdtemp(join(tmpdir(), "sdksmith-"));
 
     try {
       const inputFile = join(dir, "openapi.yaml");

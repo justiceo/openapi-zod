@@ -2,7 +2,7 @@
 
 import * as z from "zod";
 
-export const __openapiZodOneOf = (value: unknown, ctx: z.core.$RefinementCtx, schemas: z.ZodType[]): void => {
+export const __sdksmithOneOf = (value: unknown, ctx: z.core.$RefinementCtx, schemas: z.ZodType[]): void => {
   let matches = 0;
   for (const schema of schemas) {
     if (schema.safeParse(value).success) matches += 1;
@@ -18,7 +18,7 @@ export const openApiMetadata = {
   openapi: "3.1.0",
 } as const;
 
-export const EventSchema = z.unknown().superRefine((value, ctx) => __openapiZodOneOf(value, ctx, [z.lazy(() => UserCreatedEventSchema), z.lazy(() => UserDeletedEventSchema)])).pipe(z.union([z.lazy(() => UserCreatedEventSchema), z.lazy(() => UserDeletedEventSchema)]));
+export const EventSchema = z.unknown().superRefine((value, ctx) => __sdksmithOneOf(value, ctx, [z.lazy(() => UserCreatedEventSchema), z.lazy(() => UserDeletedEventSchema)])).pipe(z.union([z.lazy(() => UserCreatedEventSchema), z.lazy(() => UserDeletedEventSchema)]));
 export type Event = z.infer<typeof EventSchema>;
 
 export const SearchResultSchema = z.union([z.lazy(() => UserCreatedEventSchema), z.object({

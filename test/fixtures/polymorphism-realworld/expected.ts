@@ -10,7 +10,7 @@ export const openApiMetadata = {
   openapi: "3.1.0",
 } as const;
 
-const __openapiZodOneOf = (value: unknown, ctx: z.core.$RefinementCtx, schemas: z.ZodType[]): void => {
+const __sdksmithOneOf = (value: unknown, ctx: z.core.$RefinementCtx, schemas: z.ZodType[]): void => {
   let matches = 0;
   for (const schema of schemas) {
     if (schema.safeParse(value).success) matches += 1;
@@ -18,7 +18,7 @@ const __openapiZodOneOf = (value: unknown, ctx: z.core.$RefinementCtx, schemas: 
   if (matches !== 1) ctx.addIssue({ code: "custom", message: "Expected exactly one schema to match." });
 };
 
-export const EventSchema = z.unknown().superRefine((value, ctx) => __openapiZodOneOf(value, ctx, [z.lazy(() => UserCreatedEventSchema), z.lazy(() => UserDeletedEventSchema)])).pipe(z.union([z.lazy(() => UserCreatedEventSchema), z.lazy(() => UserDeletedEventSchema)]));
+export const EventSchema = z.unknown().superRefine((value, ctx) => __sdksmithOneOf(value, ctx, [z.lazy(() => UserCreatedEventSchema), z.lazy(() => UserDeletedEventSchema)])).pipe(z.union([z.lazy(() => UserCreatedEventSchema), z.lazy(() => UserDeletedEventSchema)]));
 export type Event = z.infer<typeof EventSchema>;
 
 export const SearchResultSchema = z.union([z.lazy(() => UserCreatedEventSchema), z.object({
@@ -190,7 +190,7 @@ function matchRouteNode(node: RouteMatcherNode, segments: string[], index: numbe
 
 function routeRequestPathname(request: RouteRequest): string {
   const value = request.path ?? request.originalUrl ?? request.url ?? "/";
-  const url = new URL(value, "http://openapi-zod.local");
+  const url = new URL(value, "http://sdksmith.local");
   return url.pathname || "/";
 }
 
@@ -200,7 +200,7 @@ function routePathSegments(pathname: string): string[] {
 
 function routeQueryValues(request: RouteRequest): Record<string, unknown> {
   if (request.query !== undefined) return coerceRouteRecord(request.query);
-  const url = new URL(request.url ?? request.originalUrl ?? request.path ?? "/", "http://openapi-zod.local");
+  const url = new URL(request.url ?? request.originalUrl ?? request.path ?? "/", "http://sdksmith.local");
   const values: Record<string, unknown> = {};
   url.searchParams.forEach((value, key) => {
     const coerced = coerceRouteScalar(value);

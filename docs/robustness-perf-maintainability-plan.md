@@ -1,8 +1,8 @@
-# openapi-zod: Robustness, Performance, Size & Maintainability Roadmap
+# sdksmith: Robustness, Performance, Size & Maintainability Roadmap
 
 ## Context
 
-`openapi-zod` (v0.1.1, pre-1.0) converts OpenAPI 3.x documents to Zod 4 validators via string-concatenation codegen (not an AST-based emitter). The codebase is small (~4k lines across `src/`) and has good type discipline (no `any` anywhere) and broad fixture-based test coverage in `test/converter.test.ts`. However, exploration surfaced concrete gaps in each of the four target areas:
+`sdksmith` (v0.1.1, pre-1.0) converts OpenAPI 3.x documents to Zod 4 validators via string-concatenation codegen (not an AST-based emitter). The codebase is small (~4k lines across `src/`) and has good type discipline (no `any` anywhere) and broad fixture-based test coverage in `test/converter.test.ts`. However, exploration surfaced concrete gaps in each of the four target areas:
 
 - **Robustness**: several recursive functions in `src/schema.ts` (cycle detection, ref collection, schema conversion) have no depth guards, so a pathological or deeply-nested/circular OpenAPI document (untrusted input, since this is a generator that ingests arbitrary specs) can crash the process with a stack overflow instead of producing a diagnostic. Parse errors from `loader.ts` also aren't caught into the tool's existing diagnostic system.
 - **Maintainability**: `src/schema.ts` (879 lines) concentrates most complexity; ref-resolution logic is duplicated 4x across `src/components.ts` for parameters/headers/requestBodies/responses; `readPackageVersion` in `cli.ts` mixes sync I/O into an otherwise async CLI.

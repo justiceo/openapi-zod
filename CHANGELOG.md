@@ -6,6 +6,10 @@ This project follows semantic versioning. Patch releases contain compatible bug 
 
 ## Unreleased
 
+## 0.4.0
+
+- **Breaking:** rename the project to **sdksmith**. The npm package is now `sdksmith` (was `@justiceo/openapi-zod`) and the CLI bin is now `sdksmith` (was `openapi-zod`). Generated runtime helpers are renamed from `__openapiZod*` to `__sdksmith*` (e.g. `__sdksmithStableJson`), and the route helper's placeholder base URL is now `http://sdksmith.local`; regenerate committed output after upgrading.
+
 ## 0.3.1
 
 - Rename the published package to `@justiceo/openapi-zod` (the unscoped `openapi-zod` name on npm belongs to an unrelated, unmaintained package). The CLI bin name is unchanged (`openapi-zod`).

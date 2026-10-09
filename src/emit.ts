@@ -44,18 +44,18 @@ export function helperCode(helpers: Set<HelperName>, exported = false): string[]
   if (needsStableJson) {
     lines.push(
       "",
-      `${keyword} __openapiZodStableJson = (value: unknown): string => {`,
+      `${keyword} __sdksmithStableJson = (value: unknown): string => {`,
       '  if (value === null || typeof value !== "object") return JSON.stringify(value);',
-      '  if (Array.isArray(value)) return `[${value.map((item) => __openapiZodStableJson(item)).join(",")}]`;',
+      '  if (Array.isArray(value)) return `[${value.map((item) => __sdksmithStableJson(item)).join(",")}]`;',
       "  const object = value as Record<string, unknown>;",
-      '  return `{${Object.keys(object).sort().map((key) => `${JSON.stringify(key)}:${__openapiZodStableJson(object[key])}`).join(",")}}`;',
+      '  return `{${Object.keys(object).sort().map((key) => `${JSON.stringify(key)}:${__sdksmithStableJson(object[key])}`).join(",")}}`;',
       "};",
     );
   }
   if (helpers.has("oneOf")) {
     lines.push(
       "",
-      `${keyword} __openapiZodOneOf = (value: unknown, ctx: z.core.$RefinementCtx, schemas: z.ZodType[]): void => {`,
+      `${keyword} __sdksmithOneOf = (value: unknown, ctx: z.core.$RefinementCtx, schemas: z.ZodType[]): void => {`,
       "  let matches = 0;",
       "  for (const schema of schemas) {",
       "    if (schema.safeParse(value).success) matches += 1;",
@@ -67,10 +67,10 @@ export function helperCode(helpers: Set<HelperName>, exported = false): string[]
   if (helpers.has("uniqueItems")) {
     lines.push(
       "",
-      `${keyword} __openapiZodUniqueItems = (items: unknown[], ctx: z.core.$RefinementCtx): void => {`,
+      `${keyword} __sdksmithUniqueItems = (items: unknown[], ctx: z.core.$RefinementCtx): void => {`,
       "  const seen = new Set<string>();",
       "  for (const item of items) {",
-      "    const key = __openapiZodStableJson(item);",
+      "    const key = __sdksmithStableJson(item);",
       "    if (seen.has(key)) {",
       '      ctx.addIssue({ code: "custom", message: "Expected array items to be unique." });',
       "      return;",
@@ -83,7 +83,7 @@ export function helperCode(helpers: Set<HelperName>, exported = false): string[]
   if (helpers.has("propertyNames")) {
     lines.push(
       "",
-      `${keyword} __openapiZodPropertyNames = (value: Record<string, unknown>, ctx: z.core.$RefinementCtx, schema: z.ZodType): void => {`,
+      `${keyword} __sdksmithPropertyNames = (value: Record<string, unknown>, ctx: z.core.$RefinementCtx, schema: z.ZodType): void => {`,
       "  for (const key of Object.keys(value)) {",
       '    if (!schema.safeParse(key).success) ctx.addIssue({ code: "custom", path: [key], message: "Object property name did not match the required schema." });',
       "  }",
@@ -93,7 +93,7 @@ export function helperCode(helpers: Set<HelperName>, exported = false): string[]
   if (helpers.has("patternProperties")) {
     lines.push(
       "",
-      `${keyword} __openapiZodPatternProperties = (value: Record<string, unknown>, ctx: z.core.$RefinementCtx, patterns: Array<[RegExp, z.ZodType]>): void => {`,
+      `${keyword} __sdksmithPatternProperties = (value: Record<string, unknown>, ctx: z.core.$RefinementCtx, patterns: Array<[RegExp, z.ZodType]>): void => {`,
       "  for (const [key, child] of Object.entries(value)) {",
       "    for (const [pattern, schema] of patterns) {",
       '      if (pattern.test(key) && !schema.safeParse(child).success) ctx.addIssue({ code: "custom", path: [key], message: "Object property did not match its patternProperties schema." });',
@@ -105,7 +105,7 @@ export function helperCode(helpers: Set<HelperName>, exported = false): string[]
   if (helpers.has("contains")) {
     lines.push(
       "",
-      `${keyword} __openapiZodContains = (items: unknown[], ctx: z.core.$RefinementCtx, schema: z.ZodType, min: number, max: number | undefined): void => {`,
+      `${keyword} __sdksmithContains = (items: unknown[], ctx: z.core.$RefinementCtx, schema: z.ZodType, min: number, max: number | undefined): void => {`,
       "  let matches = 0;",
       "  for (const item of items) {",
       "    if (schema.safeParse(item).success) matches += 1;",
@@ -118,7 +118,7 @@ export function helperCode(helpers: Set<HelperName>, exported = false): string[]
   if (helpers.has("conditional")) {
     lines.push(
       "",
-      `${keyword} __openapiZodConditional = (value: unknown, ctx: z.core.$RefinementCtx, ifSchema: z.ZodType, thenSchema: z.ZodType | undefined, elseSchema: z.ZodType | undefined): void => {`,
+      `${keyword} __sdksmithConditional = (value: unknown, ctx: z.core.$RefinementCtx, ifSchema: z.ZodType, thenSchema: z.ZodType | undefined, elseSchema: z.ZodType | undefined): void => {`,
       "  const matched = ifSchema.safeParse(value).success;",
       '  if (matched && thenSchema && !thenSchema.safeParse(value).success) ctx.addIssue({ code: "custom", message: "Value did not match the conditional then schema." });',
       '  if (!matched && elseSchema && !elseSchema.safeParse(value).success) ctx.addIssue({ code: "custom", message: "Value did not match the conditional else schema." });',
@@ -128,7 +128,7 @@ export function helperCode(helpers: Set<HelperName>, exported = false): string[]
   if (helpers.has("dependentRequired")) {
     lines.push(
       "",
-      `${keyword} __openapiZodDependentRequired = (value: Record<string, unknown>, ctx: z.core.$RefinementCtx, dependencies: Record<string, string[]>): void => {`,
+      `${keyword} __sdksmithDependentRequired = (value: Record<string, unknown>, ctx: z.core.$RefinementCtx, dependencies: Record<string, string[]>): void => {`,
       "  for (const [key, required] of Object.entries(dependencies)) {",
       "    if (!(key in value)) continue;",
       "    for (const requiredKey of required) {",
@@ -141,7 +141,7 @@ export function helperCode(helpers: Set<HelperName>, exported = false): string[]
   if (helpers.has("dependentSchemas")) {
     lines.push(
       "",
-      `${keyword} __openapiZodDependentSchemas = (value: Record<string, unknown>, ctx: z.core.$RefinementCtx, schemas: Array<[string, z.ZodType]>): void => {`,
+      `${keyword} __sdksmithDependentSchemas = (value: Record<string, unknown>, ctx: z.core.$RefinementCtx, schemas: Array<[string, z.ZodType]>): void => {`,
       "  for (const [key, schema] of schemas) {",
       '    if (key in value && !schema.safeParse(value).success) ctx.addIssue({ code: "custom", path: [key], message: `Object did not match dependent schema for ${key}.` });',
       "  }",

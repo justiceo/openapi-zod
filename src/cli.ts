@@ -30,7 +30,7 @@ interface CliOptions {
 
 type ParsedCli = CliOptions | { action: "help" } | { action: "version" };
 
-const usage = `Usage: openapi-zod --input <path> --output <dir> [options]
+const usage = `Usage: sdksmith --input <path> --output <dir> [options]
 
 Convert an OpenAPI 3.0.x or 3.1.x YAML/JSON document into Zod 4 validators.
 
